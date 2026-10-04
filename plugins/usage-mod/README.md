@@ -46,6 +46,8 @@ Mod 需要 **Claude Code 2.1.287 或更高版本**,从这个版本起默认开�
 
 ### 方式一:从市场安装
 
+**以下命令在终端里执行**,不是在 Claude Code 的对话框里输入。终端可以是系统自带的 PowerShell、Windows Terminal(macOS / Linux 用自带的终端),或者桌面应用侧边的 Terminal 面板。
+
 ```bash
 claude plugin marketplace add qingyashizi/claude-usage-mod
 claude plugin install usage-mod@usage-mod
@@ -122,7 +124,7 @@ claude plugin validate ./usage-mod
 
 ## 卸载
 
-**通过市场安装的:**
+**通过市场安装的**(同样在终端里执行):
 
 ```bash
 claude plugin uninstall usage-mod@usage-mod

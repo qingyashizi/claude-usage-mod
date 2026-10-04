@@ -14,6 +14,8 @@ Claude Code 用量显示 Mod:在输入框上方常驻显示**上下文占用、5
 
 需要 **Claude Code 2.1.287 或更高版本**(`claude --version` 查看)。
 
+**以下命令在终端里执行**,不是在 Claude Code 的对话框里输入。终端可以是系统自带的 PowerShell、Windows Terminal(macOS / Linux 用自带的终端),或者桌面应用侧边的 Terminal 面板。
+
 ```bash
 claude plugin marketplace add qingyashizi/claude-usage-mod
 claude plugin install usage-mod@usage-mod
@@ -39,6 +41,8 @@ claude plugin validate ./plugins/usage-mod
 输出里的 `hooks:` 和 `calls:` 两行,就是它挂了哪些事件、调用了哪些能力。本 Mod 不联网,只读写自己文件夹下的一个缓存文件。
 
 ## 卸载
+
+同样在终端里执行:
 
 ```bash
 claude plugin uninstall usage-mod@usage-mod

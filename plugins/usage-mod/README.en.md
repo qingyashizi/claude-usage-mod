@@ -46,6 +46,8 @@ This mod was developed on 2.1.286. On 2.1.286 and earlier you also need the envi
 
 ### Option 1: from the marketplace
 
+**Run these commands in a terminal**, not by typing them into the Claude Code chat box. Any terminal works: PowerShell or Windows Terminal (Terminal on macOS / Linux), or the Terminal panel beside the conversation in the Desktop app.
+
 ```bash
 claude plugin marketplace add qingyashizi/claude-usage-mod
 claude plugin install usage-mod@usage-mod
@@ -122,7 +124,7 @@ Colors and the icon are constants at the top of `hooks/register.tsx`; all displa
 
 ## Uninstall
 
-**Installed from the marketplace:**
+**Installed from the marketplace** (also run in a terminal):
 
 ```bash
 claude plugin uninstall usage-mod@usage-mod

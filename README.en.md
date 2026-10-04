@@ -14,6 +14,8 @@ Available in Simplified Chinese, Traditional Chinese, English and Japanese. See 
 
 Requires **Claude Code 2.1.287 or later** (check with `claude --version`).
 
+**Run these commands in a terminal**, not by typing them into the Claude Code chat box. Any terminal works: PowerShell or Windows Terminal (Terminal on macOS / Linux), or the Terminal panel beside the conversation in the Desktop app.
+
 ```bash
 claude plugin marketplace add qingyashizi/claude-usage-mod
 claude plugin install usage-mod@usage-mod
@@ -39,6 +41,8 @@ claude plugin validate ./plugins/usage-mod
 The `hooks:` and `calls:` lines in the output show which events the mod handles and what it asks Claude Code to do. This mod makes no network requests; it only reads and writes one cache file inside its own folder.
 
 ## Uninstall
+
+Also run in a terminal:
 
 ```bash
 claude plugin uninstall usage-mod@usage-mod
