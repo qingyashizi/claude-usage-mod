@@ -2,7 +2,7 @@
   "name": "usage-mod",
   "description": "Claude Code 用量显示 Mod:输入框上方常驻显示上下文、5 小时额度、每周额度",
   "owner": {
-    "name": "steve"
+    "name": "qingyashizi"
   },
   "plugins": [
     {
