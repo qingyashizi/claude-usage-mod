@@ -6,7 +6,11 @@
 
 A Claude Code mod that shows **context usage, the 5-hour limit, the weekly limit** and their reset times in a row above the prompt, with a one-click button to compact the context, and an icon on the far right that expands a **line chart of the token usage of every reply** (cache read / cache write / fresh input / output; hover for each turn's start, end and duration).
 
-![usage-mod screenshot: three usage bars above the prompt, an icon button at each end, and the expanded token chart](plugins/usage-mod/docs/screenshot-chart-en.png)
+![usage-mod screenshot: three usage bars above the prompt, with an icon button at each end](plugins/usage-mod/docs/screenshot-bar-en.png)
+
+Click the icon on the far right to expand the token line chart:
+
+![usage-mod screenshot: the expanded token chart](plugins/usage-mod/docs/screenshot-chart-en.png)
 
 Available in Simplified Chinese, Traditional Chinese, English and Japanese. See [plugins/usage-mod](plugins/usage-mod/README.en.md) for details.
 
