@@ -19,6 +19,9 @@ claude plugin marketplace add qingyashizi/claude-usage-mod
 claude plugin install usage-mod@usage-mod
 ```
 
+- 第一行:告诉 Claude Code,把 GitHub 上的 `qingyashizi/claude-usage-mod`(格式是 `用户名/仓库名`)登记成一个"插件市场",也就是一份可以从中挑插件的清单。这一步只是登记,**还没有安装任何东西**。
+- 第二行:从刚登记的市场里安装插件。`usage-mod@usage-mod` 的格式是 `插件名@市场名`,这里两个名字碰巧一样:前一个是插件,后一个是市场。
+
 已经打开的会话里运行 `/reload-plugins` 加载,否则下次启动生效。更新:
 
 ```bash
