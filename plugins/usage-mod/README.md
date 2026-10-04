@@ -1,58 +1,60 @@
 # usage-mod
 
-**中文** | [English](README.en.md)
+**English** | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [日本語](README.ja.md)
 
-给 Claude Code 的一个小 Mod:在输入框上方常驻显示三项用量,带一个一键压缩上下文的按钮,还能展开看每一轮回复的 token 用量折线图。
+A small mod for Claude Code. It shows three usage figures in a row above the prompt, adds a one-click button to compact the context, and can expand a line chart of the token usage of every reply.
 
-![usage-mod 截图:输入框上方的三块用量条,两端各有一个图标按钮](docs/screenshot-bar.png)
+![usage-mod screenshot: three usage bars above the prompt, with an icon button at each end](docs/screenshot-bar-en.png)
 
-从左到右:压缩按钮、上下文占用、5 小时额度、每周额度、展开明细按钮。点最右边的图标,横条上方就展开 token 明细图(见下面的"Token 明细图");再点一下收起。
+Left to right: the compact button, context usage, the 5-hour limit, the weekly limit, and the details button. Click the icon on the far right to expand the token chart above the row (see "Token chart" below); click again to collapse it.
 
-## 功能
+## Features
 
-- **上下文占用**:已用百分比和 token 数。
-- **5 小时额度**:已用百分比、还剩多久重置、具体几点重置。
-- **每周额度**:同上。
-- **一键压缩**:最左边的线条图标(四个箭头向中间收),点一下直接压缩上下文,效果等同于输入 `/compact`。鼠标移上去有提示。
-- **展开 token 明细**:最右边的折线图标,点一下在横条上方展开每一轮回复的 token 用量折线图,再点收起。详见下面的"Token 明细图"。
-- 三块等宽,橙色(`#D77757`)填充表示已用比例,颜色固定,不随用量变化。
-- 用量到 90% 时弹一次提醒。
-- 每 5 秒读一次最新数据,不用等一轮回复结束。
+- **Context usage**: percent used and the token count.
+- **5-hour limit**: percent used, time until reset, and the exact reset time.
+- **Weekly limit**: the same.
+- **One-click compact**: the line icon on the far left (four arrows pointing inward). One click compacts the context right away, the same as typing `/compact`. A tooltip appears on hover.
+- **Token details**: the chart icon on the far right. One click expands a line chart of the token usage of every reply above the row; click again to collapse. See "Token chart" below.
+- Three equal-width blocks. The orange (`#D77757`) fill shows how much is used; the color is fixed and does not change with usage.
+- A toast appears once when a figure reaches 90%.
+- Figures refresh every 5 seconds, so you don't have to wait for a reply to finish.
 
-## Token 明细图
+## Token chart
 
-点横条最右边的折线图标展开,再点收起。
+Click the chart icon on the far right of the row to expand it, and again to collapse it.
 
-![usage-mod 截图:展开后的 token 明细折线图](docs/screenshot-chart.png)
+![usage-mod screenshot: the expanded token chart](docs/screenshot-chart-en.png)
 
-展开后从上到下:
+From top to bottom the expanded panel has:
 
-- **第一行**:标题、五项合计、共多少轮。合计是这个会话里 Mod 记到的所有回复加起来的:
-  - **新增输入**:没走缓存、这次新发给模型的输入 token。
-  - **输出**:模型生成的 token。
-  - **缓存创建**:这次新写进提示缓存的 token。
-  - **缓存命中**:从提示缓存里读到的 token,比新发的便宜得多。
-  - **缓存命中率**:缓存命中 ÷(新增输入 + 缓存创建 + 缓存命中)。
-- **第二行**:四条曲线的开关,点图例上的名字就显示 / 隐藏对应的曲线。缓存命中通常比其他三项大几个数量级,在同一根纵轴上其他曲线会被压成贴地的线;把它隐藏后,其余几项的起伏才看得出来。
-- **折线图**:每一轮回复一个点,横轴按时间顺序(左下和右下标出最早和最近的时刻),纵轴是 token 数。最多保留最近 50 轮。
-- **鼠标移到某一轮上**:那一列高亮,旁边弹出一张半透明的明细卡片:开始时刻 → 结束时刻、用时、模型,以及这一轮的四项数字。子代理的回复会在模型名后面标注。
+- **First row**: a title, five totals and the number of turns. The totals add up every reply the mod has recorded in this session:
+  - **Fresh input**: input tokens that were sent to the model fresh, not served from the cache.
+  - **Output**: tokens the model generated.
+  - **Cache write**: tokens newly written to the prompt cache.
+  - **Cache read**: tokens read from the prompt cache, which is much cheaper than fresh input.
+  - **Cache hit rate**: cache read ÷ (fresh input + cache write + cache read).
+- **Second row**: a toggle for each of the four lines; click a name in the legend to show or hide that line. Cache read is usually orders of magnitude larger than the others, which flattens them against the axis; hide it and the rest become readable.
+- **The chart**: one point per reply, in time order (the earliest and latest times are labelled at the bottom corners), with token counts on the vertical axis. It keeps the last 50 turns.
+- **Hover a turn**: its column lights up and a semi-transparent card appears beside it with the start time → end time, how long it took, the model, and the four figures for that turn. Replies from sub-agents are marked after the model name.
 
-需要知道的几点:
+Things to know:
 
-- 数据只来自**当前会话**,并且只记 Mod **加载之后**的回复。重启或 `/reload-plugins` 后重新累计,不会存到文件里。
-- "用时"是墙上时间,你让它停着等你的那段也算在里面:离开一小时再回来,这一轮就显示一个多小时。开始时刻是用"结束时刻 − 用时"反推的。
-- 图只在能画图片的界面里有(桌面应用)。终端里点展开按钮只看得到合计数字,没有折线图。
-- 卡片是按"列"跳动的,不是真的贴着鼠标指针走:这种图里不能跑脚本,拿不到鼠标的精确位置。
-- 展开时图可能偶尔闪一下:能响应悬停的图要放进单独的小窗口里画,横条每重画一次(比如回复进行中数字在变),这个小窗口就重建一次。为了少闪,展开期间每分钟一次的倒计时刷新暂停了,合上就补上。
-- 窗口窄、第一行放不下时,依次去掉标题、把"共 N 轮"挪到第二行、去掉合计里的缓存命中率和新增输入。四种语言的文字长短差很多,所以是按当前语言实际的文字宽度算的。
-- 这个图不显示"每一轮用了 5 小时额度的百分之几":引擎只给整数百分比,而且是整个账号共用的(别的会话、网页端用掉的也算在内),按轮相减没有意义。
-- 按钮上的线条图标来自 [Lucide](https://lucide.dev)(ISC 许可)。
+- The data comes from **the current session only**, and only from replies **after the mod was loaded**. It starts over after a restart or `/reload-plugins`, and is not saved to a file.
+- "Took" is wall-clock time, including any time it sat waiting for you: step away for an hour and that turn shows over an hour. The start time is worked out as "end time − duration".
+- The chart exists only where an image can be drawn (the Desktop app). In the terminal the expand button only shows the totals, with no chart.
+- The card jumps from column to column; it does not follow the pointer smoothly. These charts cannot run scripts, so the mod never learns the exact pointer position.
+- The chart may flicker now and then while it is open: a chart that reacts to hover has to be drawn in its own small frame, and that frame is rebuilt every time the row redraws (for example while figures change during a reply). To flicker less, the once-a-minute countdown refresh is paused while the panel is open and catches up when you close it.
+- When the window is too narrow for the first row, things give way in order: the title, then the turn count moves to the second row, then the cache hit rate and fresh input are dropped from the totals. Text lengths differ a lot between the four languages, so this is worked out from the actual text width in the current language.
+- It does not show "what percent of the 5-hour limit each turn used": the engine only reports whole percents, and the limit is shared by the whole account (other sessions and the web app count too), so subtracting between turns would be meaningless.
+- The line icons on the buttons are from [Lucide](https://lucide.dev) (ISC license).
 
-## 语言
+## Language
 
-支持 **简体中文(`zh`)、繁體中文(`zh-TW`)、English(`en`)、日本語(`ja`)**,默认简体中文。
+Simplified Chinese (`zh`), Traditional Chinese (`zh-TW`), English (`en`) and Japanese (`ja`).
 
-切换方法:在 Claude Code 里运行 `/plugin`,找到 usage-mod,把 **Language / 语言** 改成想要的;或者在 `~/.claude/settings.json` 里设置:
+By default (`auto`) it follows the computer's language: Simplified Chinese on a Simplified Chinese system, Traditional Chinese (Taiwan, Hong Kong, Macau) on a Traditional one, Japanese on a Japanese one, and English for everything else.
+
+To pin one language, run `/plugin` in Claude Code, find usage-mod and change **Language / 语言**. Or set it in `~/.claude/settings.json`:
 
 ```json
 {
@@ -62,123 +64,123 @@
 }
 ```
 
-改完模块会自动重新加载。语言代码写错时退回简体中文。(通过市场安装时,`pluginConfigs` 里的键名以 `/plugin` 里显示的为准,最稳妥的办法是直接在 `/plugin` 里改。)
+The mod reloads itself after the change. `auto`, no setting, or an unknown language code all follow the computer's language. (When installed from a marketplace, use the key name that `/plugin` shows for `pluginConfigs`; changing it in `/plugin` directly is the safest way.)
 
-想加别的语言:打开 `hooks/i18n.ts`,复制一份词典翻译,在 `DICTS` 里登记,再把语言代码加进 `.claude-plugin/plugin.json` 的 `userConfig.language.options`。
+To add another language, open `hooks/i18n.ts`, copy a dictionary and translate it, register it in `DICTS`, then add the language code to `userConfig.language.options` in `.claude-plugin/plugin.json`.
 
-## 版本要求
+## Requirements
 
-Mod 需要 **Claude Code 2.1.287 或更高版本**,从这个版本起默认开启。用 `claude --version` 查看。
+Mods need **Claude Code 2.1.287 or later**, where they are on by default. Check with `claude --version`.
 
-本 Mod 是在 2.1.286 上开发的,2.1.286 及更早的版本需要额外设置环境变量 `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1`(见下面"手动加载")。2.1.287 起这个变量会被忽略,不用设。
+This mod was developed on 2.1.286. On 2.1.286 and earlier you also need the environment variable `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1` (see "Load it manually" below). From 2.1.287 on, that variable is ignored and not needed.
 
-## 安装
+## Install
 
-### 方式一:从市场安装
+### Option 1: from the marketplace
 
-**以下命令在终端里执行**,不是在 Claude Code 的对话框里输入。终端可以是系统自带的 PowerShell、Windows Terminal(macOS / Linux 用自带的终端),或者桌面应用侧边的 Terminal 面板。
+**Run these commands in a terminal**, not by typing them into the Claude Code chat box. Any terminal works: PowerShell or Windows Terminal (Terminal on macOS / Linux), or the Terminal panel beside the conversation in the Desktop app.
 
 ```bash
 claude plugin marketplace add qingyashizi/claude-usage-mod
 claude plugin install usage-mod@usage-mod
 ```
 
-- 第一行:告诉 Claude Code,把 GitHub 上的 `qingyashizi/claude-usage-mod`(格式是 `用户名/仓库名`)登记成一个"插件市场",也就是一份可以从中挑插件的清单。这一步只是登记,**还没有安装任何东西**。
-- 第二行:从刚登记的市场里安装插件。`usage-mod@usage-mod` 的格式是 `插件名@市场名`,这里两个名字碰巧一样:前一个是插件,后一个是市场。
+- First line: tells Claude Code to register the GitHub repository `qingyashizi/claude-usage-mod` (the format is `user/repo`) as a "plugin marketplace", a list it can pick plugins from. This only registers it; **nothing is installed yet**.
+- Second line: installs the plugin from the marketplace you just added. `usage-mod@usage-mod` has the form `plugin@marketplace`; the two names happen to be the same here: the first is the plugin, the second is the marketplace.
 
-已经打开的会话里运行 `/reload-plugins` 加载,否则下次启动生效。
+In a session that is already open, run `/reload-plugins` to load it; otherwise it loads the next time you start Claude Code.
 
-### 方式二:手动加载
+### Option 2: load it manually
 
-先把整个 `usage-mod` 文件夹放到你喜欢的位置,比如 `~/.claude/mods/usage-mod`。
+Put the whole `usage-mod` folder somewhere you like, for example `~/.claude/mods/usage-mod`.
 
-**临时试用**(只对这一次启动有效):
+**Try it for one run** (only for that launch):
 
 ```bash
 claude --plugin-dir ~/.claude/mods/usage-mod
 ```
 
-**长期使用**:在 `~/.claude/settings.json` 里加一个 `env` 块,路径换成你自己的。新开的会话才会加载。
+**Keep it permanently**: add an `env` block to `~/.claude/settings.json` with your own path. New sessions pick it up.
 
 ```json
 {
   "env": {
-    "CLAUDE_CODE_PLUGIN_DIRS": "C:\\Users\\你的用户名\\.claude\\mods\\usage-mod"
+    "CLAUDE_CODE_PLUGIN_DIRS": "C:\\Users\\your-name\\.claude\\mods\\usage-mod"
   }
 }
 ```
 
-2.1.286 及更早的版本还要在 `env` 里加 `"CLAUDE_CODE_ENABLE_FUNCTION_HOOKS": "1"`。想让改动代码后不重启就生效,再加 `"CLAUDE_CODE_PLUGIN_DIR_WATCH": "1"`。
+On 2.1.286 and earlier, also add `"CLAUDE_CODE_ENABLE_FUNCTION_HOOKS": "1"` to `env`. To reload automatically when you edit the code, also add `"CLAUDE_CODE_PLUGIN_DIR_WATCH": "1"`.
 
-### 安装前先看它做什么
+### See what it does before you install it
 
-Mod 是在 Claude Code 里面以你的权限运行的代码,没有沙箱。安装前可以先列出它挂了哪些事件、调用了哪些能力:
+A mod is code that runs inside Claude Code with your permissions, and it is not sandboxed. Before installing, list which events it handles and what it asks Claude Code to do:
 
 ```bash
 claude plugin validate ./usage-mod
 ```
 
-输出里的 `hooks:` 和 `calls:` 两行就是答案。本 Mod 会用到:读取用量(`$.session.usage`)、每一轮回复结束时记一笔那一轮的用量(`turn.complete` 事件,只读,只放在内存里)、运行 `/compact` 命令来压缩上下文(`$.command.run`)、读写自己文件夹下的 `cache/limits.json`(`$.fs.read` / `$.fs.write`)、弹提示(`$.ui.toast`)、定时器(`$.clock`)。不联网,不读别的文件。
+The `hooks:` and `calls:` lines in the output are the answer. This mod uses: reading usage (`$.session.usage`), noting the usage of each reply when it finishes (the `turn.complete` event; read-only, kept in memory only), running the `/compact` command to compact the context (`$.command.run`), reading and writing `cache/limits.json` inside its own folder (`$.fs.read` / `$.fs.write`), toasts (`$.ui.toast`) and timers (`$.clock`). It makes no network requests and reads no other files.
 
-### 运行位置
+### Where it runs
 
-- 终端里的 `claude`:横条和压缩按钮能显示;**Token 明细的折线图不显示**(终端里画不了图片),展开按钮会退回成一个文字符号,点开只有合计数字。
-- 桌面应用的 Code 标签页:横条、两个按钮和折线图都能显示(WSL 会话里不支持插件)。
-- VS Code 扩展、`claude -p`、云端会话:Mod 会运行,但横条不会显示。
+- `claude` in a terminal: the row and the compact button show; **the token chart does not** (images cannot be drawn in a terminal), and the expand button falls back to a text symbol that opens only the totals.
+- The Code tab of the Desktop app: the row, both buttons and the chart all show (plugins are not available in WSL sessions).
+- The VS Code extension, `claude -p`, and cloud sessions: the mod runs, but the row is not drawn.
 
-## 自定义
+## Customize
 
-颜色、图标、折线图的样式等在 `hooks/register.tsx` 开头的常量里,所有显示的文字(包括悬停提示 `tip`)在 `hooks/i18n.ts` 里:
+Colors, icons and the chart style are constants at the top of `hooks/register.tsx`; all displayed text (including the hover tooltip, `tip`) is in `hooks/i18n.ts`:
 
-| 常量 | 作用 |
+| Constant | What it does |
 |---|---|
-| `ORANGE` | 已用部分的填充色 |
-| `WARM` | 剩余部分的底色 |
-| `DARK` / `LIGHT` | 填充内 / 填充外的文字色 |
-| `ICON_PATHS` | 两个按钮的线条图标(Lucide 的图形数据),想换图标就换这里的图形 |
-| `ICON_BG` / `ICON_LINE` | 图标的底色(要和横条背景一致)和线条色 |
-| `ICON` | 没有图片元素的界面(终端)里,压缩按钮用的文字符号 |
-| `SERIES` | 折线图四条曲线的颜色 |
-| `CARD` / `GRID` / `MUTED` | 折线图的底色、网格线、坐标文字色 |
-| `TIP_BG` | 悬停明细卡片的底色 |
-| `MAX_TURNS` | 最多记多少轮,默认 50 |
-| `WARN` | 弹提醒的百分比阈值,默认 90 |
+| `ORANGE` | Fill color of the used part |
+| `WARM` | Background color of the unused part |
+| `DARK` / `LIGHT` | Text color inside / outside the fill |
+| `ICON_PATHS` | The two buttons' line icons (Lucide shape data); swap the shapes to change an icon |
+| `ICON_BG` / `ICON_LINE` | Icon background (must match the row's background) and line color |
+| `ICON` | The text symbol the compact button uses where no image can be drawn (the terminal) |
+| `SERIES` | Colors of the chart's four lines |
+| `CARD` / `GRID` / `MUTED` | The chart's background, grid lines and axis text |
+| `TIP_BG` | Background of the hover details card |
+| `MAX_TURNS` | How many turns to keep, 50 by default |
+| `WARN` | Percentage that triggers the warning toast, 90 by default |
 
-## 已知限制
+## Known limitations
 
-- **Mod 的接口目前是早期访问**,会随 Claude Code 版本变化。本 Mod 在 2.1.286 上开发和测试,别的版本可能加载失败或显示异常。
-- **切换到一个本次启动后还没打开过的会话时,横条要等几秒才出现。**实测(桌面应用、Claude Code 2.1.289,十几次)约 2.5 到 5.5 秒,平均约 4 秒;已经打开过的会话再切回来是即时的。这段时间基本花在引擎里,Mod 管不了:从 Mod 加载完到它的启动钩子开始约 1 秒,启动钩子结束到横条第一次画出来又约 1.7 秒,Mod 自己的初始化只占零点几秒。试过让初始化不阻塞,耗时没有明显变化(平均 4.3 秒对 4.0 秒,在波动范围内)。
-- **5 小时和每周额度只有在本次进程收到过一次回复后才有真实值**。新会话里会先显示上次存下的数据(存在 mod 文件夹下的 `cache/limits.json`),已经过了重置时间的会被丢掉,显示成"—"。这是引擎给数据的方式决定的。
-- **横条背景上下的内边距是应用自己的**,Mod 改不了。
-- 桌面应用里悬停提示由应用画成深色卡片,所以提示文字用的是浅色;终端里是橙底深字。
-- 窗口窄于 78 列时,退回成一行简短文字,此时没有两个按钮,也就展开不了明细图。
-- 折线图的宽度是按横条的格数估算的(图片只接受像素宽度,引擎不告诉 Mod 横条实际有多少像素)。估得偏大,应用会把整张图缩小、露出底色;偏小则两边留白变多。不同字体大小下可能要调 `CHART_PX_PER_CELL`。
-- 压缩会把之前的对话换成摘要,细节会丢,**点了就直接执行,没有确认步骤**。
-- **压缩要等模型把对话总结一遍,上下文大时会比较久。**实测约 41 万 token 用了 63 秒。点下去后先弹"正在压缩上下文…",完成时再弹"已压缩上下文",中间没有进度显示,也别重复点。
-- 桌面应用的会话是 SDK(无头)会话,引擎不允许 Mod 直接调用压缩接口(`$.session.compact`),所以按钮的做法是替你运行一次 `/compact` 命令(`$.command.run`)。这个办法只在桌面应用里验证过,终端里没有试过。
-- AI 正在回复时点按钮:按引擎文档,命令会排队,等这一轮结束再执行。这一点没有亲自验证过。
-- 作者只在本地用 `--plugin-dir` 和 `CLAUDE_CODE_PLUGIN_DIRS` 验证过;通过市场安装是按官方文档写的,没有亲自试过。
+- **The mods API is in early access** and changes between Claude Code versions. This mod was developed and tested on 2.1.286; other versions may fail to load it or draw it differently.
+- **Switching to a session that has not been opened since the app started, the row takes a few seconds to appear.** Measured in the Desktop app on Claude Code 2.1.289 (about ten runs): 2.5 to 5.5 seconds, around 4 on average; going back to a session that is already open is instant. Almost all of that time is spent inside the engine, which a mod cannot affect: about 1 second from the mod loading until its start hook runs, then about 1.7 seconds from the hook finishing until the row is first drawn. The mod's own setup is a fraction of a second. Making that setup non-blocking changed nothing measurable (4.3 s vs 4.0 s on average, within the run-to-run spread).
+- **The 5-hour and weekly figures only have real values after this process has received one reply.** A new session first shows the figures saved last time (in `cache/limits.json` inside the mod folder); any whose reset time has passed are dropped and shown as "—". This follows from how the engine supplies the data.
+- **The padding above and below the row belongs to the app**, and a mod cannot change it.
+- In the Desktop app the hover tooltip is drawn by the app as a dark card, so its text is light; in the terminal it is dark text on orange.
+- When the window is narrower than 78 columns, the row falls back to one short line, with neither button, so the chart cannot be expanded.
+- The chart width is estimated from the number of columns in the row (an image only accepts a width in pixels, and the engine does not tell a mod how many pixels the row has). Too large and the app shrinks the whole image, which shows a strip of background; too small and the side margins grow. At other font sizes you may need to adjust `CHART_PX_PER_CELL`.
+- Compacting replaces the earlier conversation with a summary, so detail is lost. **A click runs it immediately, with no confirmation step.**
+- **Compacting waits for the model to summarize the conversation, which takes a while when the context is large.** Measured: about 63 seconds at roughly 410k tokens. A click first shows "Compacting context…", then "Context compacted" when done; there is no progress display in between, and clicking again does not help.
+- Sessions in the Desktop app are SDK (headless) sessions, where the engine does not let a mod call the compaction API (`$.session.compact`) directly, so the button runs the `/compact` command for you instead (`$.command.run`). This was only verified in the Desktop app; it has not been tried in the terminal.
+- Clicking while Claude is replying: per the engine docs the command is queued and runs once the turn ends. This has not been verified here.
+- The author has only tested loading with `--plugin-dir` and `CLAUDE_CODE_PLUGIN_DIRS`. Installing from a marketplace is written from the official documentation and has not been tried first-hand.
 
-## 卸载
+## Uninstall
 
-**通过市场安装的**(同样在终端里执行):
+**Installed from the marketplace** (also run in a terminal):
 
 ```bash
 claude plugin uninstall usage-mod@usage-mod
 ```
 
-已经打开的会话里运行 `/reload-plugins`,否则下次启动生效。也可以在 Claude Code 里运行 `/plugin`,在列表里找到 usage-mod 操作。只想暂时关掉、以后还要用,用 `claude plugin disable usage-mod@usage-mod`(之后可 `enable` 回来)。
+Run `/reload-plugins` in an open session, or it takes effect on the next start. You can also run `/plugin` inside Claude Code and manage usage-mod from the list. To switch it off for now and keep it for later, use `claude plugin disable usage-mod@usage-mod` (and `enable` to bring it back).
 
-要把添加过的市场也移除:
+To remove the marketplace you added as well:
 
 ```bash
 claude plugin marketplace remove usage-mod
 ```
 
-**手动加载的:**把 `settings.json` 里的 `CLAUDE_CODE_PLUGIN_DIRS` 那一项去掉(或改掉路径),再删掉文件夹即可。
+**Loaded manually:** remove the `CLAUDE_CODE_PLUGIN_DIRS` entry from `settings.json` (or change the path) and delete the folder.
 
-如果你改过语言,`settings.json` 里可能留着 `pluginConfigs` 下 `usage-mod` 的那一项,不影响使用,想清理就手动删掉。
+If you changed the language, `settings.json` may still hold a `usage-mod` entry under `pluginConfigs`. It does no harm; delete it by hand if you want a clean file.
 
-## 许可证
+## License
 
-MIT,见 `LICENSE`。
+MIT. See `LICENSE`.

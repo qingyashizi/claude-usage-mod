@@ -236,5 +236,26 @@ const ja: Dict = {
 
 export const DICTS: Record<string, Dict> = { zh, 'zh-TW': zhTW, en, ja }
 
-/** 取不到或写错了语言代码时,退回简体中文。 */
-export const pickDict = (language: unknown): Dict => DICTS[String(language)] ?? zh
+/**
+ * 按电脑的语言挑词典:繁体中文(台湾、香港、澳门,或写明 Hant)用繁体,其余中文用简体,
+ * 日语用日语,别的一律英文。拿不到系统语言时也是英文。
+ */
+export const languageOf = (locale: string): string => {
+  const lower = locale.toLowerCase().replace('_', '-')
+
+  if (lower.startsWith('zh')) return /^zh-(tw|hk|mo|hant)/.test(lower) ? 'zh-TW' : 'zh'
+  if (lower.startsWith('ja')) return 'ja'
+
+  return 'en'
+}
+
+export const detectLanguage = (): string => {
+  try {
+    return languageOf(Intl.DateTimeFormat().resolvedOptions().locale)
+  } catch {
+    return 'en'
+  }
+}
+
+/** 设置里选了具体语言就用它;选"自动"、没设、或语言代码写错了,按电脑的语言来。 */
+export const pickDict = (language: unknown): Dict => DICTS[String(language)] ?? DICTS[detectLanguage()] ?? en

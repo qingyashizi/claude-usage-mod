@@ -1,60 +1,60 @@
 # claude-usage-mod
 
-> 仓库名是 `claude-usage-mod`;插件名是 `usage-mod`(Anthropic 不允许第三方插件名以 `claude-` 开头)。
+> The repository is named `claude-usage-mod`; the plugin is named `usage-mod` (Anthropic does not allow third-party plugin names to start with `claude-`).
 
-**中文** | [English](README.en.md)
+**English** | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [日本語](README.ja.md)
 
-Claude Code 用量显示 Mod:在输入框上方常驻显示**上下文占用、5 小时额度、每周额度**和重置时间,带一个一键压缩上下文的按钮,还能点最右边的图标展开**每一轮回复的 token 用量折线图**(缓存命中 / 缓存创建 / 新增输入 / 输出,鼠标移上去看每一轮的开始、结束时间和用时)。
+A Claude Code mod that shows **context usage, the 5-hour limit, the weekly limit** and their reset times in a row above the prompt, with a one-click button to compact the context, and an icon on the far right that expands a **line chart of the token usage of every reply** (cache read / cache write / fresh input / output; hover for each turn's start, end and duration).
 
-![usage-mod 截图:输入框上方的三块用量条,两端各有一个图标按钮](plugins/usage-mod/docs/screenshot-bar.png)
+![usage-mod screenshot: three usage bars above the prompt, with an icon button at each end](plugins/usage-mod/docs/screenshot-bar-en.png)
 
-点最右边的图标展开 token 明细折线图:
+Click the icon on the far right to expand the token line chart:
 
-![usage-mod 截图:展开后的 token 明细折线图](plugins/usage-mod/docs/screenshot-chart.png)
+![usage-mod screenshot: the expanded token chart](plugins/usage-mod/docs/screenshot-chart-en.png)
 
-支持简体中文、繁體中文、English、日本語。详细说明见 [plugins/usage-mod](plugins/usage-mod/README.md)。
+Available in Simplified Chinese, Traditional Chinese, English and Japanese, following the computer's language by default (English unless it is Simplified Chinese, Traditional Chinese or Japanese). See [plugins/usage-mod](plugins/usage-mod/README.md) for details.
 
-## 安装
+## Install
 
-需要 **Claude Code 2.1.287 或更高版本**(`claude --version` 查看)。
+Requires **Claude Code 2.1.287 or later** (check with `claude --version`).
 
-**以下命令在终端里执行**,不是在 Claude Code 的对话框里输入。终端可以是系统自带的 PowerShell、Windows Terminal(macOS / Linux 用自带的终端),或者桌面应用侧边的 Terminal 面板。
+**Run these commands in a terminal**, not by typing them into the Claude Code chat box. Any terminal works: PowerShell or Windows Terminal (Terminal on macOS / Linux), or the Terminal panel beside the conversation in the Desktop app.
 
 ```bash
 claude plugin marketplace add qingyashizi/claude-usage-mod
 claude plugin install usage-mod@usage-mod
 ```
 
-- 第一行:告诉 Claude Code,把 GitHub 上的 `qingyashizi/claude-usage-mod`(格式是 `用户名/仓库名`)登记成一个"插件市场",也就是一份可以从中挑插件的清单。这一步只是登记,**还没有安装任何东西**。
-- 第二行:从刚登记的市场里安装插件。`usage-mod@usage-mod` 的格式是 `插件名@市场名`,这里两个名字碰巧一样:前一个是插件,后一个是市场。
+- First line: tells Claude Code to register the GitHub repository `qingyashizi/claude-usage-mod` (the format is `user/repo`) as a "plugin marketplace", a list it can pick plugins from. This only registers it; **nothing is installed yet**.
+- Second line: installs the plugin from the marketplace you just added. `usage-mod@usage-mod` has the form `plugin@marketplace`; the two names happen to be the same here: the first is the plugin, the second is the marketplace.
 
-已经打开的会话里运行 `/reload-plugins` 加载,否则下次启动生效。更新:
+In a session that is already open, run `/reload-plugins` to load it; otherwise it loads the next time you start Claude Code. To update:
 
 ```bash
 claude plugin marketplace update usage-mod
 ```
 
-## 安装前请先看
+## Read this before installing
 
-Mod 是以你的权限运行的代码,没有沙箱。装之前可以先把仓库克隆下来,用下面的命令看它会做什么:
+A mod is code that runs with your permissions and is not sandboxed. Before installing, you can clone the repository and list what it does:
 
 ```bash
 claude plugin validate ./plugins/usage-mod
 ```
 
-输出里的 `hooks:` 和 `calls:` 两行,就是它挂了哪些事件、调用了哪些能力。本 Mod 不联网,只读写自己文件夹下的一个缓存文件。
+The `hooks:` and `calls:` lines in the output show which events the mod handles and what it asks Claude Code to do. This mod makes no network requests; it only reads and writes one cache file inside its own folder.
 
-## 卸载
+## Uninstall
 
-同样在终端里执行:
+Also run in a terminal:
 
 ```bash
 claude plugin uninstall usage-mod@usage-mod
-claude plugin marketplace remove usage-mod   # 可选:把添加过的市场也移除
+claude plugin marketplace remove usage-mod   # optional: also remove the marketplace you added
 ```
 
-只想暂时关掉:`claude plugin disable usage-mod@usage-mod`。更多见 [plugins/usage-mod](plugins/usage-mod/README.md)。
+To just switch it off for now: `claude plugin disable usage-mod@usage-mod`. More in [plugins/usage-mod](plugins/usage-mod/README.md).
 
-## 许可证
+## License
 
-MIT。
+MIT.
