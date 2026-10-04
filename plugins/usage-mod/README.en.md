@@ -4,7 +4,7 @@
 
 A small mod for Claude Code. It shows three usage figures in a row above the prompt, adds a one-click button to compact the context, and can expand a line chart of the token usage of every reply.
 
-![usage-mod screenshot: three usage bars above the prompt, an icon button at each end, and the expanded token chart (shown with the Chinese UI; the text follows your language setting)](docs/screenshot-chart.png)
+![usage-mod screenshot: three usage bars above the prompt, an icon button at each end, and the expanded token chart](docs/screenshot-chart-en.png)
 
 The bottom row, left to right: the compact button, context usage, the 5-hour limit, the weekly limit, and the details button. Click the icon on the far right to expand the token chart above the row (that is what the screenshot shows); click again to collapse it.
 
