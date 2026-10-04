@@ -35,6 +35,15 @@ claude plugin validate ./plugins/usage-mod
 
 输出里的 `hooks:` 和 `calls:` 两行,就是它挂了哪些事件、调用了哪些能力。本 Mod 不联网,只读写自己文件夹下的一个缓存文件。
 
+## 卸载
+
+```bash
+claude plugin uninstall usage-mod@usage-mod
+claude plugin marketplace remove usage-mod   # 可选:把添加过的市场也移除
+```
+
+只想暂时关掉:`claude plugin disable usage-mod@usage-mod`。更多见 [plugins/usage-mod](plugins/usage-mod/README.md)。
+
 ## 许可证
 
 MIT。

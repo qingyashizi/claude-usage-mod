@@ -119,7 +119,23 @@ claude plugin validate ./usage-mod
 
 ## 卸载
 
-把 `settings.json` 里的 `CLAUDE_CODE_PLUGIN_DIRS` 那一项去掉(或改掉路径),再删掉文件夹即可。
+**通过市场安装的:**
+
+```bash
+claude plugin uninstall usage-mod@usage-mod
+```
+
+已经打开的会话里运行 `/reload-plugins`,否则下次启动生效。也可以在 Claude Code 里运行 `/plugin`,在列表里找到 usage-mod 操作。只想暂时关掉、以后还要用,用 `claude plugin disable usage-mod@usage-mod`(之后可 `enable` 回来)。
+
+要把添加过的市场也移除:
+
+```bash
+claude plugin marketplace remove usage-mod
+```
+
+**手动加载的:**把 `settings.json` 里的 `CLAUDE_CODE_PLUGIN_DIRS` 那一项去掉(或改掉路径),再删掉文件夹即可。
+
+如果你改过语言,`settings.json` 里可能留着 `pluginConfigs` 下 `usage-mod` 的那一项,不影响使用,想清理就手动删掉。
 
 ## 许可证
 

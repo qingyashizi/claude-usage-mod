@@ -119,7 +119,23 @@ Colors and the icon are constants at the top of `hooks/register.tsx`; all displa
 
 ## Uninstall
 
-Remove the `CLAUDE_CODE_PLUGIN_DIRS` entry from `settings.json` (or change the path) and delete the folder.
+**Installed from the marketplace:**
+
+```bash
+claude plugin uninstall usage-mod@usage-mod
+```
+
+Run `/reload-plugins` in an open session, or it takes effect on the next start. You can also run `/plugin` inside Claude Code and manage usage-mod from the list. To switch it off for now and keep it for later, use `claude plugin disable usage-mod@usage-mod` (and `enable` to bring it back).
+
+To remove the marketplace you added as well:
+
+```bash
+claude plugin marketplace remove usage-mod
+```
+
+**Loaded manually:** remove the `CLAUDE_CODE_PLUGIN_DIRS` entry from `settings.json` (or change the path) and delete the folder.
+
+If you changed the language, `settings.json` may still hold a `usage-mod` entry under `pluginConfigs`. It does no harm; delete it by hand if you want a clean file.
 
 ## License
 
