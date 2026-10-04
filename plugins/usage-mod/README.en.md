@@ -2,21 +2,47 @@
 
 [中文](README.md) | **English**
 
-A small mod for Claude Code. It shows three usage figures in a row above the prompt and adds a one-click button to compact the context.
+A small mod for Claude Code. It shows three usage figures in a row above the prompt, adds a one-click button to compact the context, and can expand a line chart of the token usage of every reply.
 
-![usage-mod screenshot: three usage bars above the prompt and a compact button on the left](docs/screenshot-en.png)
+![usage-mod screenshot: three usage bars above the prompt, an icon button at each end, and the expanded token chart (shown with the Chinese UI; the text follows your language setting)](docs/screenshot-chart.png)
 
-From left to right: the compact button, context usage, the 5-hour limit, and the weekly limit.
+The bottom row, left to right: the compact button, context usage, the 5-hour limit, the weekly limit, and the details button. Click the icon on the far right to expand the token chart above the row (that is what the screenshot shows); click again to collapse it.
 
 ## Features
 
 - **Context usage**: percent used and the token count.
 - **5-hour limit**: percent used, time until reset, and the exact reset time.
 - **Weekly limit**: the same.
-- **One-click compact**: the 🗜 icon on the far left. One click compacts the context right away, the same as typing `/compact`. A tooltip appears on hover.
+- **One-click compact**: the line icon on the far left (four arrows pointing inward). One click compacts the context right away, the same as typing `/compact`. A tooltip appears on hover.
+- **Token details**: the chart icon on the far right. One click expands a line chart of the token usage of every reply above the row; click again to collapse. See "Token chart" below.
 - Three equal-width blocks. The orange (`#D77757`) fill shows how much is used; the color is fixed and does not change with usage.
 - A toast appears once when a figure reaches 90%.
 - Figures refresh every 5 seconds, so you don't have to wait for a reply to finish.
+
+## Token chart
+
+Click the chart icon on the far right of the row to expand it, and again to collapse it. From top to bottom the expanded panel has:
+
+- **First row**: a title, five totals and the number of turns. The totals add up every reply the mod has recorded in this session:
+  - **Fresh input**: input tokens that were sent to the model fresh, not served from the cache.
+  - **Output**: tokens the model generated.
+  - **Cache write**: tokens newly written to the prompt cache.
+  - **Cache read**: tokens read from the prompt cache, which is much cheaper than fresh input.
+  - **Cache hit rate**: cache read ÷ (fresh input + cache write + cache read).
+- **Second row**: a toggle for each of the four lines; click a name in the legend to show or hide that line. Cache read is usually orders of magnitude larger than the others, which flattens them against the axis; hide it and the rest become readable.
+- **The chart**: one point per reply, in time order (the earliest and latest times are labelled at the bottom corners), with token counts on the vertical axis. It keeps the last 50 turns.
+- **Hover a turn**: its column lights up and a semi-transparent card appears beside it with the start time → end time, how long it took, the model, and the four figures for that turn. Replies from sub-agents are marked after the model name.
+
+Things to know:
+
+- The data comes from **the current session only**, and only from replies **after the mod was loaded**. It starts over after a restart or `/reload-plugins`, and is not saved to a file.
+- "Took" is wall-clock time, including any time it sat waiting for you: step away for an hour and that turn shows over an hour. The start time is worked out as "end time − duration".
+- The chart exists only where an image can be drawn (the Desktop app). In the terminal the expand button only shows the totals, with no chart.
+- The card jumps from column to column; it does not follow the pointer smoothly. These charts cannot run scripts, so the mod never learns the exact pointer position.
+- The chart may flicker now and then while it is open: a chart that reacts to hover has to be drawn in its own small frame, and that frame is rebuilt every time the row redraws (for example while figures change during a reply). To flicker less, the once-a-minute countdown refresh is paused while the panel is open and catches up when you close it.
+- When the window is too narrow for the first row, things give way in order: the title, then the turn count moves to the second row, then the cache hit rate and fresh input are dropped from the totals. Text lengths differ a lot between the four languages, so this is worked out from the actual text width in the current language.
+- It does not show "what percent of the 5-hour limit each turn used": the engine only reports whole percents, and the limit is shared by the whole account (other sessions and the web app count too), so subtracting between turns would be meaningless.
+- The line icons on the buttons are from [Lucide](https://lucide.dev) (ISC license).
 
 ## Language
 
@@ -88,24 +114,30 @@ A mod is code that runs inside Claude Code with your permissions, and it is not 
 claude plugin validate ./usage-mod
 ```
 
-The `hooks:` and `calls:` lines in the output are the answer. This mod uses: reading usage (`$.session.usage`), running the `/compact` command to compact the context (`$.command.run`), reading and writing `cache/limits.json` inside its own folder (`$.fs.read` / `$.fs.write`), toasts (`$.ui.toast`) and timers (`$.clock`). It makes no network requests and reads no other files.
+The `hooks:` and `calls:` lines in the output are the answer. This mod uses: reading usage (`$.session.usage`), noting the usage of each reply when it finishes (the `turn.complete` event; read-only, kept in memory only), running the `/compact` command to compact the context (`$.command.run`), reading and writing `cache/limits.json` inside its own folder (`$.fs.read` / `$.fs.write`), toasts (`$.ui.toast`) and timers (`$.clock`). It makes no network requests and reads no other files.
 
 ### Where it runs
 
-- `claude` in a terminal: the row and the button both show.
-- The Code tab of the Desktop app: they show (plugins are not available in WSL sessions).
+- `claude` in a terminal: the row and the compact button show; **the token chart does not** (images cannot be drawn in a terminal), and the expand button falls back to a text symbol that opens only the totals.
+- The Code tab of the Desktop app: the row, both buttons and the chart all show (plugins are not available in WSL sessions).
 - The VS Code extension, `claude -p`, and cloud sessions: the mod runs, but the row is not drawn.
 
 ## Customize
 
-Colors and the icon are constants at the top of `hooks/register.tsx`; all displayed text (including the hover tooltip, `tip`) is in `hooks/i18n.ts`:
+Colors, icons and the chart style are constants at the top of `hooks/register.tsx`; all displayed text (including the hover tooltip, `tip`) is in `hooks/i18n.ts`:
 
 | Constant | What it does |
 |---|---|
 | `ORANGE` | Fill color of the used part |
 | `WARM` | Background color of the unused part |
 | `DARK` / `LIGHT` | Text color inside / outside the fill |
-| `ICON` | The compact button's icon; swap in another character if it doesn't render |
+| `ICON_PATHS` | The two buttons' line icons (Lucide shape data); swap the shapes to change an icon |
+| `ICON_BG` / `ICON_LINE` | Icon background (must match the row's background) and line color |
+| `ICON` | The text symbol the compact button uses where no image can be drawn (the terminal) |
+| `SERIES` | Colors of the chart's four lines |
+| `CARD` / `GRID` / `MUTED` | The chart's background, grid lines and axis text |
+| `TIP_BG` | Background of the hover details card |
+| `MAX_TURNS` | How many turns to keep, 50 by default |
 | `WARN` | Percentage that triggers the warning toast, 90 by default |
 
 ## Known limitations
@@ -115,7 +147,8 @@ Colors and the icon are constants at the top of `hooks/register.tsx`; all displa
 - **The 5-hour and weekly figures only have real values after this process has received one reply.** A new session first shows the figures saved last time (in `cache/limits.json` inside the mod folder); any whose reset time has passed are dropped and shown as "—". This follows from how the engine supplies the data.
 - **The padding above and below the row belongs to the app**, and a mod cannot change it.
 - In the Desktop app the hover tooltip is drawn by the app as a dark card, so its text is light; in the terminal it is dark text on orange.
-- When the window is narrower than 78 columns, the row falls back to one short line, and the compact button is not shown.
+- When the window is narrower than 78 columns, the row falls back to one short line, with neither button, so the chart cannot be expanded.
+- The chart width is estimated from the number of columns in the row (an image only accepts a width in pixels, and the engine does not tell a mod how many pixels the row has). Too large and the app shrinks the whole image, which shows a strip of background; too small and the side margins grow. At other font sizes you may need to adjust `CHART_PX_PER_CELL`.
 - Compacting replaces the earlier conversation with a summary, so detail is lost. **A click runs it immediately, with no confirmation step.**
 - **Compacting waits for the model to summarize the conversation, which takes a while when the context is large.** Measured: about 63 seconds at roughly 410k tokens. A click first shows "Compacting context…", then "Context compacted" when done; there is no progress display in between, and clicking again does not help.
 - Sessions in the Desktop app are SDK (headless) sessions, where the engine does not let a mod call the compaction API (`$.session.compact`) directly, so the button runs the `/compact` command for you instead (`$.command.run`). This was only verified in the Desktop app; it has not been tried in the terminal.
