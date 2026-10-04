@@ -6,7 +6,11 @@
 
 Claude Code 用量显示 Mod:在输入框上方常驻显示**上下文占用、5 小时额度、每周额度**和重置时间,带一个一键压缩上下文的按钮,还能点最右边的图标展开**每一轮回复的 token 用量折线图**(缓存命中 / 缓存创建 / 新增输入 / 输出,鼠标移上去看每一轮的开始、结束时间和用时)。
 
-![usage-mod 截图:输入框上方的三块用量条、两端的图标按钮,以及展开后的 token 明细折线图](plugins/usage-mod/docs/screenshot-chart.png)
+![usage-mod 截图:输入框上方的三块用量条,两端各有一个图标按钮](plugins/usage-mod/docs/screenshot-bar.png)
+
+点最右边的图标展开 token 明细折线图:
+
+![usage-mod 截图:展开后的 token 明细折线图](plugins/usage-mod/docs/screenshot-chart.png)
 
 支持简体中文、繁體中文、English、日本語。详细说明见 [plugins/usage-mod](plugins/usage-mod/README.md)。
 
