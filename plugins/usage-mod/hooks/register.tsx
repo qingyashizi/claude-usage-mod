@@ -1,12 +1,23 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { Limit, Usage } from '../types'
+import type { Limit, Stats, TurnRecord, Usage } from '../types'
 import { pickDict } from './i18n'
 import type { Dict } from './i18n'
 
 const usage = atom({ plugin: 'usage-mod', key: 'usage' } as const, { limits: [] } as Usage)
 const now = atom({ plugin: 'usage-mod', key: 'now' } as const, 0)
+// 本会话每轮回复的 token 用量:合计一直累加,明细只留最近 MAX_TURNS 轮。
+const stats = atom({ plugin: 'usage-mod', key: 'stats' } as const, {
+  total: { turns: 0, input: 0, output: 0, cacheRead: 0, cacheCreate: 0 },
+  recent: [],
+} as Stats)
+
+// 折线图里被用户点掉的曲线,以及折线图当前是不是展开着。
+const hiddenSeries = atom({ plugin: 'usage-mod', key: 'hidden' } as const, [] as string[])
+const statsOpen = atom({ plugin: 'usage-mod', key: 'open' } as const, false)
+
+const MAX_TURNS = 50
 
 // 5 小时/每周窗口的用量是账号级的,存到 mod 自己文件夹下的文件里,同一份安装的所有会话共用。
 const cachePath = ($: EngineInterface) => `${$.plugin.root}/cache/limits.json`
@@ -19,11 +30,136 @@ const WARM = '#3f3f46'
 const DARK = '#161616'
 const LIGHT = '#ececec'
 
-// 压缩按钮:点一下直接压缩。
+// 压缩按钮:点一下直接压缩。明细按钮:点一下在横条上方展开 / 收起 token 折线图。
 const ICON = '🗜'
+const STATS_ICON = '📊'
 const BUTTON_CELLS = 3
 
 const pad = (n: number) => String(n).padStart(2, '0')
+
+/** token 数的短写法:834、35.5k、1.2M;和上下文那块用的 tokensText 不同,小数字不取整到 k。 */
+const countText = (n: number) => {
+  if (n >= 1000000) return `${Number((n / 1000000).toFixed(1))}M`
+  if (n >= 1000) return `${Number((n / 1000).toFixed(1))}k`
+
+  return String(n)
+}
+
+const durationText = (ms: number) => {
+  const seconds = Math.round(ms / 1000)
+  if (seconds < 60) return `${seconds}s`
+
+  return `${Math.floor(seconds / 60)}m${pad(seconds % 60)}s`
+}
+
+/** 缓存命中率:命中的输入占全部输入(新增、缓存创建、缓存命中三项之和)的比例。 */
+const hitRate = (input: number, cacheRead: number, cacheCreate: number) => {
+  const all = input + cacheRead + cacheCreate
+
+  return all === 0 ? '—' : `${((cacheRead / all) * 100).toFixed(1)}%`
+}
+
+const modelName = (model: string) => model.replace(/^claude-/, '').replace(/-\d{8}$/, '')
+
+/** 折线图的四条曲线,颜色和 CC Switch 一致:缓存命中紫、缓存创建橙、新增输入蓝、输出绿。 */
+type SeriesKey = 'input' | 'output' | 'cacheCreate' | 'cacheRead'
+/** 折线图画成自带底色的深色卡片:应用把 SVG 当不透明图片画,不画底就是一块白纸。底色和网格线跟用量条的 WARM 同一色系。 */
+const CARD = '#232326'
+const GRID = '#3f3f46'
+const MUTED = '#a1a1aa'
+
+/** 折线图的画布宽度和最大高度(CSS 像素)。Svg 元素要显式给宽高,不然应用自己挑,会缩得很小;高度按横条能给的行数再往下缩。 */
+const CHART_W = 720
+const CHART_MAX_H = 260
+
+const SERIES: Array<{ key: SeriesKey; color: string }> = [
+  { key: 'cacheRead', color: '#a855f7' },
+  { key: 'cacheCreate', color: '#f97316' },
+  { key: 'input', color: '#3b82f6' },
+  { key: 'output', color: '#22c55e' },
+]
+
+const seriesLabel = (L: Dict, key: SeriesKey) => ({ input: L.sIn, output: L.sOut, cacheCreate: L.sCreate, cacheRead: L.sHit })[key]
+
+const clockText = (at: number) => `${pad(new Date(at).getHours())}:${pad(new Date(at).getMinutes())}`
+
+const esc = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
+/** 纵轴上限取 1、2、5、10 乘以 10 的幂,刻度才好读。 */
+const niceMax = (value: number) => {
+  if (value <= 0) return 1
+  const power = 10 ** Math.floor(Math.log10(value))
+  const m = value / power
+
+  return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * power
+}
+
+/**
+ * 折线图,画成一段 SVG。横轴是最近几轮回复,纵轴是 token 数。
+ * 图里只有线和点,没有交互:SVG 的悬停提示要放进沙盒小窗口里画,而沙盒小窗口每次横条重画都会重建,图就会闪。
+ * 悬停交互由盖在图上的原生 Box 做(见 hoverZones),应用自己处理,不经过插件。
+ */
+/** 感应区平时的底色和鼠标指上去时的底色。完全透明的 Box 应用不当成"画出来的",鼠标指上去没有反应(实测);
+ * 所以平时给一个看不出来的底色(透明度约 0.4%),指上去时才变成一层淡淡的高亮。 */
+const HIT_CLEAR = '#ffffff01'
+const HIT_LIT = '#ffffff1a'
+
+/** 图里画曲线的区域离画布左、右边的像素数;感应区要按同样的比例对齐。 */
+const PLOT_LEFT = 58
+const PLOT_RIGHT = 14
+
+const chartSvg = (L: Dict, turns: TurnRecord[], hidden: string[], height: number) => {
+  const W = CHART_W
+  const H = height
+  const left = PLOT_LEFT
+  const right = PLOT_RIGHT
+  const top = 12
+  const bottom = 26
+  const pw = W - left - right
+  const ph = H - top - bottom
+  const shown = SERIES.filter(one => !hidden.includes(one.key))
+  const max = niceMax(Math.max(0, ...shown.flatMap(one => turns.map(r => r[one.key]))))
+  const n = turns.length
+  const step = n === 1 ? pw : pw / (n - 1)
+  const x = (i: number) => (n === 1 ? left + pw / 2 : left + step * i)
+  const y = (v: number) => top + ph * (1 - v / max)
+  const f = (v: number) => v.toFixed(1)
+
+  const out: string[] = [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="sans-serif" font-size="12">`,
+    `<rect width="${W}" height="${H}" fill="${CARD}"/>`,
+  ]
+  for (let i = 0; i <= 4; i += 1) {
+    const v = (max * i) / 4
+    out.push(
+      `<line x1="${left}" x2="${W - right}" y1="${f(y(v))}" y2="${f(y(v))}" stroke="${GRID}"/>`,
+      `<text x="${left - 6}" y="${f(y(v) + 4)}" text-anchor="end" fill="${MUTED}">${countText(v)}</text>`,
+    )
+  }
+  for (const one of shown) {
+    const points = turns.map((r, i) => `${f(x(i))},${f(y(r[one.key]))}`)
+    out.push(`<polyline points="${points.join(' ')}" fill="none" stroke="${one.color}" stroke-width="2" stroke-linejoin="round"/>`)
+    for (const point of points) {
+      const [px, py] = point.split(',')
+      out.push(`<circle cx="${px}" cy="${py}" r="2.5" fill="${one.color}"/>`)
+    }
+  }
+  out.push(
+    `<text x="${left}" y="${H - 6}" fill="${MUTED}">${clockText(turns[0]!.at)}</text>`,
+    `<text x="${left + pw / 2}" y="${H - 6}" text-anchor="middle" fill="${MUTED}">${esc(L.statsAxis(n))}</text>`,
+    `<text x="${W - right}" y="${H - 6}" text-anchor="end" fill="${MUTED}">${clockText(turns[n - 1]!.at)}</text>`,
+    '</svg>',
+  )
+
+  return out.join('')
+}
+
+/** 选中那一轮的明细,一行文字:时间、模型、耗时,再加四项 token。 */
+const detailText = (L: Dict, r: TurnRecord) =>
+  [
+    `${clockText(r.at)} · ${modelName(r.model)}${r.isSub ? ` (${L.sub})` : ''} · ${durationText(r.ms)}`,
+    ...SERIES.map(one => `${seriesLabel(L, one.key)} ${countText(r[one.key])}`),
+  ].join('  ·  ')
 
 const remaining = (L: Dict, resetsAt: string | undefined, at: number) => {
   if (resetsAt === undefined) return ''
@@ -141,15 +277,54 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
+  // 只观察:先让这一轮正常收尾,再记下它的用量。记不进去也不影响回复。
+  on('turn.complete', async ($, e, next) => {
+    const result = await next(e)
+    const u = e.usage
+    if (u === undefined) return result
+    try {
+      const record: TurnRecord = {
+        at: await $.clock.now(),
+        model: u.model,
+        input: u.input_tokens,
+        output: u.output_tokens,
+        cacheRead: u.cache_read_input_tokens,
+        cacheCreate: u.cache_creation_input_tokens,
+        ms: e.durationMs,
+        isSub: e.agentId !== undefined,
+      }
+      await update($, stats, old => ({
+        total: {
+          turns: old.total.turns + 1,
+          input: old.total.input + record.input,
+          output: old.total.output + record.output,
+          cacheRead: old.total.cacheRead + record.cacheRead,
+          cacheCreate: old.total.cacheCreate + record.cacheCreate,
+        },
+        recent: [...old.recent, record].slice(-MAX_TURNS),
+      }))
+    } catch {
+      // 少记一轮而已。
+    }
+
+    return result
+  })
+
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.props.hasSurvey) return next(e)
 
     const data = await read($, usage)
     const at = await read($, now)
+    const isOpen = await read($, statsOpen)
+    const { total, recent } = await read($, stats)
+    const hidden = await read($, hiddenSeries)
 
     const five = find(data.limits, 'five_hour')
     const week = find(data.limits, 'seven_day')
-    const { Box, Button, Text } = $.ui.resolve(e)
+    const elements = $.ui.resolve(e)
+    const { Box, Button, Text } = elements
+    // 折线图是 SVG,只有桌面端等远程界面有这个元素。
+    const Svg = 'Svg' in elements ? elements.Svg : undefined
     const isTerminal = e.surface === 'terminal'
 
     if (e.props.bodyColumns < 78) {
@@ -166,8 +341,8 @@ export const register: Register = (on, options) => {
       )
     }
 
-    // 三块等宽,块之间各留一格;减去的是按钮和三处间隙占的格数,不再额外留边距。
-    const cells = Math.max(20, Math.floor((e.props.bodyColumns - 3 - BUTTON_CELLS) / 3))
+    // 三块等宽,块之间各留一格;减去的是两个按钮和四处间隙占的格数,不再额外留边距。
+    const cells = Math.max(20, Math.floor((e.props.bodyColumns - 4 - 2 * BUTTON_CELLS) / 3))
 
     // 几何全部交给 Box:底色块铺满整块,橙色填充按百分比取宽度。
     // 文字画两层、各裁一半:填充内是深色字,填充外是浅色字,在填充边界处切开。
@@ -215,28 +390,126 @@ export const register: Register = (on, options) => {
       }
     }
 
-    return (
-      <Box width="100%" justifyContent="center" gap={1}>
-        <Box key="compact-wrap" width={BUTTON_CELLS} justifyContent="center">
-          <Button key="compact" label={ICON} plain onPress={compact} />
-          {/* 悬停提示:平时不显示,鼠标移到图标上时才出现。桌面端应用自己把它画成深色卡片,用浅色字;终端里是橙底深字。 */}
-          <Box
-            position="absolute"
-            top={0}
-            left={BUTTON_CELLS}
-            width={L.tipCells}
-            height={1}
-            justifyContent="center"
-            backgroundColor={isTerminal ? ORANGE : undefined}
-            display="none"
-            hover={{ display: 'flex' }}
-          >
-            <Text color={isTerminal ? DARK : LIGHT}>{L.tip}</Text>
-          </Box>
+    const toggleStats = () => void update($, statsOpen, open => !open)
+    const toggleSeries = (key: SeriesKey) =>
+      void update($, hiddenSeries, old => (old.includes(key) ? old.filter(one => one !== key) : [...old, key]))
+
+    // 展开的明细:顶上是合计,中间是折线图,下面是曲线开关。画在横条里、用量条的上方,位置固定。
+    const stat = (key: string, label: string, value: string) => (
+      <Box key={key} flexDirection="column" flexGrow={1}>
+        <Text dimColor>{label}</Text>
+        <Text bold>{value}</Text>
+      </Box>
+    )
+
+    // 盖在折线图上的一排透明感应区,每轮一个,宽度按比例(flexGrow)和图里的点对齐(图是固定像素宽,Box 的宽度是格数;
+    // 百分比宽度只收整数,量不准,所以按像素数当比例分)。鼠标移到某一轮上,同组(scope)的东西一起亮:这一列变成淡淡的高亮,图下面固定一行里显示那一轮的明细。
+    // 悬停是应用自己处理的,没有任何东西回到插件,所以不会触发横条重画,图也就不会闪。
+    const hoverZones = (count: number) => {
+      const plot = CHART_W - PLOT_LEFT - PLOT_RIGHT
+      const step = count === 1 ? plot : plot / (count - 1)
+
+      return (
+        <Box position="absolute" top={0} left={0} width="100%" height="100%">
+          <Box width={0} flexGrow={PLOT_LEFT} height="100%" />
+          {Array.from({ length: count }, (_, i) => {
+            const edge = count === 1 ? plot : i === 0 || i === count - 1 ? step / 2 : step
+            const scope = `usage-turn-${i}`
+
+            return <Box key={scope} width={0} minWidth={0} flexGrow={edge} height="100%" backgroundColor={HIT_CLEAR} hover={{ scope, backgroundColor: HIT_LIT }} />
+          })}
+          <Box width={0} flexGrow={PLOT_RIGHT} height="100%" />
         </Box>
-        {block('ctx', L.ctx, data.context, ctxDetail)}
-        {block('five', L.five, five?.percentUsed, fiveDetail)}
-        {block('week', L.week, week?.percentUsed, weekDetail)}
+      )
+    }
+
+    // 横条的高度是应用定的(最多窗口的一半,放不下就滚动),所以图的高度跟着可用行数走,版面压紧:
+    // 标题、曲线开关、关闭按钮一行,合计两行,其余都给图。一行大约按 20 像素算。
+    const chartH = Math.max(110, Math.min(CHART_MAX_H, (e.props.maxRows - 8) * 20))
+
+    const panel = (
+      <Box key="stats-panel" flexDirection="column" width="100%" alignItems="center">
+        <Box width="100%" justifyContent="space-between" gap={2}>
+          <Text bold>{`${L.statsTitle} · ${L.statsTurns(total.turns)}`}</Text>
+          {total.turns > 0 && Svg !== undefined && (
+            <Box gap={2}>
+              {SERIES.map(one => (
+                <Box key={one.key} gap={1}>
+                  <Text color={one.color} dimColor={hidden.includes(one.key)}>
+                    ●
+                  </Text>
+                  <Button key={`toggle-${one.key}`} label={seriesLabel(L, one.key)} plain dimColor={hidden.includes(one.key)} onPress={() => toggleSeries(one.key)} />
+                </Box>
+              ))}
+            </Box>
+          )}
+          <Button key="stats-close" role="dismiss" label={L.close} onPress={toggleStats} />
+        </Box>
+        {total.turns === 0 ? (
+          <Text dimColor>{L.statsEmpty}</Text>
+        ) : (
+          <Box flexDirection="column" width="100%" alignItems="center">
+            <Box width="100%" gap={2}>
+              {stat('in', L.sIn, countText(total.input))}
+              {stat('out', L.sOut, countText(total.output))}
+              {stat('create', L.sCreate, countText(total.cacheCreate))}
+              {stat('hit', L.sHit, countText(total.cacheRead))}
+              {stat('rate', L.sRate, hitRate(total.input, total.cacheRead, total.cacheCreate))}
+            </Box>
+            {Svg === undefined ? (
+              <Text dimColor>{L.chartDesktopOnly}</Text>
+            ) : (
+              <Box flexDirection="column" width="100%" alignItems="center">
+                <Box key="chart-wrap" position="relative">
+                  <Svg key="chart" source={chartSvg(L, recent, hidden, chartH)} alt={`${L.statsTitle} · ${L.statsAxis(recent.length)}`} width={CHART_W} height={chartH} />
+                  {hoverZones(recent.length)}
+                </Box>
+                <Text dimColor>{L.hoverHint}</Text>
+                {/* 固定的一行:每一轮的明细叠在同一个位置,平时都藏着,鼠标移到哪一轮上就显示哪一轮,不会挤动别的东西。 */}
+                <Box height={1} width="100%" justifyContent="center">
+                  {recent.map((r, i) => (
+                    <Box key={`detail-${i}`} position="absolute" top={0} left={0} width="100%" justifyContent="center" display="none" hover={{ scope: `usage-turn-${i}`, display: 'flex' }}>
+                      <Text>{detailText(L, r)}</Text>
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
+            )}
+          </Box>
+        )}
+      </Box>
+    )
+
+    // 悬停提示:平时不显示,鼠标移到图标上时才出现。桌面端应用自己把它画成深色卡片,用浅色字;终端里是橙底深字。
+    const iconButton = (key: string, icon: string, tip: string, tipCells: number, onPress: () => void) => (
+      <Box key={`${key}-wrap`} width={BUTTON_CELLS} justifyContent="center">
+        <Button key={key} label={icon} plain onPress={onPress} />
+        <Box
+          position="absolute"
+          top={0}
+          left={BUTTON_CELLS}
+          width={tipCells}
+          height={1}
+          justifyContent="center"
+          backgroundColor={isTerminal ? ORANGE : undefined}
+          display="none"
+          hover={{ display: 'flex' }}
+        >
+          <Text color={isTerminal ? DARK : LIGHT}>{tip}</Text>
+        </Box>
+      </Box>
+    )
+
+    return (
+      <Box width="100%" flexDirection="column" gap={1}>
+        {isOpen && panel}
+        <Box width="100%" justifyContent="center" gap={1}>
+          {iconButton('compact', ICON, L.tip, L.tipCells, compact)}
+          {iconButton('stats', STATS_ICON, L.statsTip, L.statsTipCells, toggleStats)}
+          {block('ctx', L.ctx, data.context, ctxDetail)}
+          {block('five', L.five, five?.percentUsed, fiveDetail)}
+          {block('week', L.week, week?.percentUsed, weekDetail)}
+        </Box>
       </Box>
     )
   })

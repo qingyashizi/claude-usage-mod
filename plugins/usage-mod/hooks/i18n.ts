@@ -29,6 +29,22 @@ export type Dict = {
   tip: string
   /** 悬停提示占的格数(中日文每字占两格) */
   tipCells: number
+  /** token 明细按钮和面板 */
+  statsTip: string
+  statsTipCells: number
+  statsTitle: string
+  statsEmpty: string
+  statsTurns: (n: number) => string
+  sIn: string
+  sOut: string
+  sCreate: string
+  sHit: string
+  sRate: string
+  sub: string
+  statsAxis: (n: number) => string
+  chartDesktopOnly: string
+  hoverHint: string
+  close: string
 }
 
 const zh: Dict = {
@@ -53,6 +69,21 @@ const zh: Dict = {
   notCompacted: reason => `没有压缩:${reason}`,
   tip: '点击压缩上下文',
   tipCells: 18,
+  statsTip: '展开/收起 token 趋势',
+  statsTipCells: 24,
+  statsTitle: '本会话 token 明细',
+  statsEmpty: '还没有记录。从装上这个 Mod 起,每轮回复结束时开始统计。',
+  statsTurns: n => `共 ${n} 轮`,
+  sIn: '新增输入',
+  sOut: '输出',
+  sCreate: '缓存创建',
+  sHit: '缓存命中',
+  sRate: '缓存命中率',
+  sub: '子代理',
+  statsAxis: n => `最近 ${n} 轮`,
+  chartDesktopOnly: '折线图只在桌面应用里显示。',
+  hoverHint: '鼠标移到图上,查看每一轮的明细',
+  close: '关闭',
 }
 
 const zhTW: Dict = {
@@ -77,6 +108,21 @@ const zhTW: Dict = {
   notCompacted: reason => `沒有壓縮:${reason}`,
   tip: '點擊壓縮上下文',
   tipCells: 18,
+  statsTip: '展開/收起 token 趨勢',
+  statsTipCells: 24,
+  statsTitle: '本會話 token 明細',
+  statsEmpty: '還沒有記錄。從裝上這個 Mod 起,每輪回覆結束時開始統計。',
+  statsTurns: n => `共 ${n} 輪`,
+  sIn: '新增輸入',
+  sOut: '輸出',
+  sCreate: '快取建立',
+  sHit: '快取命中',
+  sRate: '快取命中率',
+  sub: '子代理',
+  statsAxis: n => `最近 ${n} 輪`,
+  chartDesktopOnly: '折線圖只在桌面應用程式裡顯示。',
+  hoverHint: '滑鼠移到圖上,查看每一輪的明細',
+  close: '關閉',
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -104,6 +150,21 @@ const en: Dict = {
   notCompacted: reason => `Not compacted: ${reason}`,
   tip: 'Click to compact context',
   tipCells: 26,
+  statsTip: 'Show / hide token trend',
+  statsTipCells: 26,
+  statsTitle: 'Token breakdown (this session)',
+  statsEmpty: 'Nothing recorded yet. Counting starts with the first reply after this mod loads.',
+  statsTurns: n => `${n} turn${n === 1 ? '' : 's'}`,
+  sIn: 'Fresh input',
+  sOut: 'Output',
+  sCreate: 'Cache write',
+  sHit: 'Cache read',
+  sRate: 'Cache hit rate',
+  sub: 'sub-agent',
+  statsAxis: n => `last ${n} turn${n === 1 ? '' : 's'}`,
+  chartDesktopOnly: 'The chart is only drawn in the Desktop app.',
+  hoverHint: 'Hover the chart to see each turn',
+  close: 'Close',
 }
 
 const ja: Dict = {
@@ -128,6 +189,21 @@ const ja: Dict = {
   notCompacted: reason => `圧縮しませんでした:${reason}`,
   tip: 'クリックでコンテキストを圧縮',
   tipCells: 28,
+  statsTip: 'トークン推移を表示/非表示',
+  statsTipCells: 28,
+  statsTitle: 'トークン内訳(このセッション)',
+  statsEmpty: 'まだ記録がありません。このModを読み込んだ後の最初の応答から集計します。',
+  statsTurns: n => `${n} ターン`,
+  sIn: '新規入力',
+  sOut: '出力',
+  sCreate: 'キャッシュ作成',
+  sHit: 'キャッシュ読取',
+  sRate: 'キャッシュヒット率',
+  sub: 'サブエージェント',
+  statsAxis: n => `直近 ${n} ターン`,
+  chartDesktopOnly: 'グラフはデスクトップアプリでのみ表示されます。',
+  hoverHint: 'グラフにカーソルを合わせると各ターンの詳細が見られます',
+  close: '閉じる',
 }
 
 export const DICTS: Record<string, Dict> = { zh, 'zh-TW': zhTW, en, ja }
