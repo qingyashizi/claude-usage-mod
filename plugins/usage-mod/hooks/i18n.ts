@@ -53,7 +53,6 @@ export type Dict = {
   endLabel: string
   elapsed: (ms: number) => string
   chartDesktopOnly: string
-  close: string
 }
 
 const zh: Dict = {
@@ -98,7 +97,6 @@ const zh: Dict = {
     return h > 0 ? `用时 ${h}小时${m}分` : m > 0 ? `用时 ${m}分${s}秒` : `用时 ${s}秒`
   },
   chartDesktopOnly: '折线图只在桌面应用里显示。',
-  close: '关闭',
 }
 
 const zhTW: Dict = {
@@ -143,7 +141,6 @@ const zhTW: Dict = {
     return h > 0 ? `耗時 ${h}小時${m}分` : m > 0 ? `耗時 ${m}分${s}秒` : `耗時 ${s}秒`
   },
   chartDesktopOnly: '折線圖只在桌面應用程式裡顯示。',
-  close: '關閉',
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -191,7 +188,6 @@ const en: Dict = {
     return h > 0 ? `took ${h}h ${m}m` : m > 0 ? `took ${m}m ${s}s` : `took ${s}s`
   },
   chartDesktopOnly: 'The chart is only drawn in the Desktop app.',
-  close: 'Close',
 }
 
 const ja: Dict = {
@@ -236,7 +232,6 @@ const ja: Dict = {
     return h > 0 ? `所要 ${h}時間${m}分` : m > 0 ? `所要 ${m}分${s}秒` : `所要 ${s}秒`
   },
   chartDesktopOnly: 'グラフはデスクトップアプリでのみ表示されます。',
-  close: '閉じる',
 }
 
 export const DICTS: Record<string, Dict> = { zh, 'zh-TW': zhTW, en, ja }

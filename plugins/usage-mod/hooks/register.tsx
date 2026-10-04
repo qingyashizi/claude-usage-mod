@@ -31,9 +31,24 @@ const DARK = '#161616'
 const LIGHT = '#ececec'
 
 // 压缩按钮:点一下直接压缩。明细按钮:点一下在横条上方展开 / 收起 token 折线图。
+// 两个都画成线条图标;ICON 是没有 Svg 元素的界面(终端)里的替代符号。
 const ICON = '🗜'
-const STATS_ICON = '📊'
 const BUTTON_CELLS = 3
+/**
+ * 两个按钮的图标:Lucide 的 fold-vertical(压缩)和 chart-line(展开明细),
+ * ISC 许可,Copyright (c) Lucide Contributors,https://lucide.dev。单色细线条,和 Claude 界面自己的图标同一种风格。
+ * 画成一小块方形的图,底色和横条的背景一样(应用把 SVG 当不透明图片画,不画底就是白的);按钮处于"开"的状态时底色和线条都亮一点。
+ */
+const ICON_BG = '#212121'
+const ICON_BG_ON = '#3a3a3a'
+const ICON_LINE = '#a3a3a3'
+const ICON_LINE_ON = '#ececec'
+const ICON_PATHS = {
+  compact: '<path d="M12 22v-6"/><path d="M12 8V2"/><path d="M4 12H2"/><path d="M10 12H8"/><path d="M16 12h-2"/><path d="M22 12h-2"/><path d="m15 19-3-3-3 3"/><path d="m15 5-3 3-3-3"/>',
+  stats: '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m19 9-5 5-4-4-3 3"/>',
+}
+const lineIconSvg = (paths: string, isOn: boolean) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="22" viewBox="0 0 24 22"><rect width="24" height="22" fill="${isOn ? ICON_BG_ON : ICON_BG}"/><g transform="translate(3 2) scale(.75)" fill="none" stroke="${isOn ? ICON_LINE_ON : ICON_LINE}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${paths}</g></svg>`
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
@@ -96,14 +111,14 @@ const niceMax = (value: number) => {
   return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * power
 }
 
-/** 悬停明细卡片的底色和边线:底色比图的底色更深,但画成半透明,下面的曲线还隐约看得见。 */
-const TIP_BG = '#0f0f0f'
-const TIP_LINE = '#525252'
+/** 悬停明细卡片的底色和边线:底色比图的底色(33,33,33)稍亮一点,像浮起来的一张卡片,并画成半透明,下面的曲线还隐约看得见。 */
+const TIP_BG = '#383838'
+const TIP_LINE = '#5c5c5c'
 const TIP_TEXT = '#ececec'
 
-/** 图里画曲线的区域离画布左、右边的像素数。 */
-const PLOT_LEFT = 58
-const PLOT_RIGHT = 14
+/** 图里画曲线的区域离画布左、右边的像素数。左边要放纵轴刻度文字(最宽约 27 像素,如 "1.5M"),加间距共 44;右边留 24,两边的空白大致相当。 */
+const PLOT_LEFT = 44
+const PLOT_RIGHT = 24
 
 /** 一段文字在图里占多宽(像素,12 号字):中日文约 12,其余约 6.7,多留一点余量。SVG 量不了字宽,只能估。 */
 const textPx = (text: string) => [...text].reduce((sum, ch) => sum + ((ch.codePointAt(0) ?? 0) > 0x2e7f ? 12 : 6.7), 0) + 2
@@ -163,7 +178,6 @@ const chartSvg = (L: Dict, turns: TurnRecord[], hidden: string[], width: number,
   }
   out.push(
     `<text x="${left}" y="${H - 6}" fill="${MUTED}">${clockText(turns[0]!.at)}</text>`,
-    `<text x="${left + pw / 2}" y="${H - 6}" text-anchor="middle" fill="${MUTED}">${esc(L.statsAxis(n))}</text>`,
     `<text x="${W - right}" y="${H - 6}" text-anchor="end" fill="${MUTED}">${clockText(turns[n - 1]!.at)}</text>`,
   )
 
@@ -300,7 +314,8 @@ const refresh = async ($: EngineInterface) => {
   }
   if (JSON.stringify(fresh) !== JSON.stringify(old)) await update($, usage, () => fresh)
   // 重置倒计时精确到分钟,每过一分钟更新一次时间。
-  if (Math.floor(t / 60000) !== Math.floor((await read($, now)) / 60000)) await update($, now, () => t)
+  // 明细图展开时不更新:横条每重画一次,交互 SVG 的小窗口就重建一次,图会闪;倒计时晚几分钟更新没关系,合上就补上。
+  if (Math.floor(t / 60000) !== Math.floor((await read($, now)) / 60000) && !(await read($, statsOpen))) await update($, now, () => t)
 }
 
 export const register: Register = (on, options) => {
@@ -470,9 +485,13 @@ export const register: Register = (on, options) => {
 
     const panel = (
       <Box key="stats-panel" flexDirection="column" width="100%" alignItems="center">
-        {/* 第一行:五项合计放最前,标题放不下时(窗口窄)先让位;第二行:共几轮和四条曲线的开关。 */}
-        <Box width="100%" justifyContent="space-between" gap={2}>
-          {(total.turns === 0 || e.props.bodyColumns >= TITLE_MIN_COLUMNS) && <Text bold>{L.statsTitle}</Text>}
+        {/* 第一行:五项合计在整行里居中,标题贴在最左边、共几轮贴在最右边,这两个都不占位置,标题放不下时(窗口窄)先让位;第二行:四条曲线的开关,居中。没有关闭按钮,收起靠右下角的图标。 */}
+        <Box width="100%" justifyContent="center">
+          {(total.turns === 0 || e.props.bodyColumns >= TITLE_MIN_COLUMNS) && (
+            <Box position="absolute" top={0} left={0}>
+              <Text bold>{L.statsTitle}</Text>
+            </Box>
+          )}
           {total.turns > 0 && (
             <Box gap={3}>
               {stat('in', L.sIn, countText(total.input))}
@@ -482,30 +501,28 @@ export const register: Register = (on, options) => {
               {stat('rate', L.sRate, hitRate(total.input, total.cacheRead, total.cacheCreate))}
             </Box>
           )}
-          <Button key="stats-close" role="dismiss" label={L.close} onPress={toggleStats} />
+          {total.turns > 0 && (
+            <Box position="absolute" top={0} right={0}>
+              <Text bold>{L.statsTurns(total.turns)}</Text>
+            </Box>
+          )}
         </Box>
         {total.turns === 0 ? (
           <Text dimColor>{L.statsEmpty}</Text>
         ) : (
           <Box flexDirection="column" width="100%" alignItems="center">
-            {/* 图例在整行里居中;"共几轮"不占位置,贴在最左边。 */}
-            <Box width="100%" justifyContent="center">
-              <Box position="absolute" top={0} left={0}>
-                <Text dimColor>{L.statsTurns(total.turns)}</Text>
+            {Svg !== undefined && (
+              <Box width="100%" justifyContent="center" gap={2}>
+                {SERIES.map(one => (
+                  <Box key={one.key} gap={1}>
+                    <Text color={one.color} dimColor={hidden.includes(one.key)}>
+                      ●
+                    </Text>
+                    <Button key={`toggle-${one.key}`} label={seriesLabel(L, one.key)} plain dimColor={hidden.includes(one.key)} onPress={() => toggleSeries(one.key)} />
+                  </Box>
+                ))}
               </Box>
-              {Svg !== undefined && (
-                <Box gap={2}>
-                  {SERIES.map(one => (
-                    <Box key={one.key} gap={1}>
-                      <Text color={one.color} dimColor={hidden.includes(one.key)}>
-                        ●
-                      </Text>
-                      <Button key={`toggle-${one.key}`} label={seriesLabel(L, one.key)} plain dimColor={hidden.includes(one.key)} onPress={() => toggleSeries(one.key)} />
-                    </Box>
-                  ))}
-                </Box>
-              )}
-            </Box>
+            )}
             {Svg === undefined ? (
               <Text dimColor>{L.chartDesktopOnly}</Text>
             ) : (
@@ -518,14 +535,21 @@ export const register: Register = (on, options) => {
       </Box>
     )
 
-    // 悬停提示:平时不显示,鼠标移到图标上时才出现。桌面端应用自己把它画成深色卡片,用浅色字;终端里是橙底深字。
-    const iconButton = (key: string, icon: string, tip: string, tipCells: number, onPress: () => void) => (
-      <Box key={`${key}-wrap`} width={BUTTON_CELLS} justifyContent="center">
-        <Button key={key} label={icon} plain onPress={onPress} />
+    // 图标按钮。图标是 Svg(画不了点击),所以在它上面盖一个同样大小、看不见的 Button 接收点击;没有 Svg 的界面(终端)直接用符号当按钮。
+    // 悬停提示:平时不显示,鼠标移到图标上时才出现,向 side 指的那一侧展开。桌面端应用自己把它画成深色卡片,用浅色字;终端里是橙底深字。
+    const iconButton = (key: string, glyph: string, paths: string, isOn: boolean, tip: string, tipCells: number, side: "left" | "right", onPress: () => void) => (
+      <Box key={`${key}-wrap`} width={BUTTON_CELLS} height={1} position="relative" justifyContent="center">
+        {Svg !== undefined && <Svg key={`${key}-icon`} source={lineIconSvg(paths, isOn)} alt={tip} width={24} height={22} />}
+        {Svg !== undefined && (
+          <Box position="absolute" top={0} left={0} width={BUTTON_CELLS} height={1}>
+            <Button key={key} label={'\u00a0'.repeat(BUTTON_CELLS)} plain onPress={onPress} />
+          </Box>
+        )}
+        {Svg === undefined && <Button key={key} label={glyph} plain onPress={onPress} />}
         <Box
           position="absolute"
           top={0}
-          left={BUTTON_CELLS}
+          {...(side === "right" ? { left: BUTTON_CELLS } : { right: BUTTON_CELLS })}
           width={tipCells}
           height={1}
           justifyContent="center"
@@ -542,11 +566,11 @@ export const register: Register = (on, options) => {
       <Box width="100%" flexDirection="column" gap={1}>
         {isOpen && panel}
         <Box width="100%" justifyContent="center" gap={1}>
-          {iconButton('compact', ICON, L.tip, L.tipCells, compact)}
-          {iconButton('stats', STATS_ICON, L.statsTip, L.statsTipCells, toggleStats)}
+          {iconButton('compact', ICON, ICON_PATHS.compact, false, L.tip, L.tipCells, 'right', compact)}
           {block('ctx', L.ctx, data.context, ctxDetail)}
           {block('five', L.five, five?.percentUsed, fiveDetail)}
           {block('week', L.week, week?.percentUsed, weekDetail)}
+          {iconButton('stats', '≡', ICON_PATHS.stats, isOpen, L.statsTip, L.statsTipCells, 'left', toggleStats)}
         </Box>
       </Box>
     )
