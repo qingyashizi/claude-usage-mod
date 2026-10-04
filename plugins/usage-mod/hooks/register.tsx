@@ -553,7 +553,7 @@ export const register: Register = (on, options) => {
     )
 
     // 图标按钮。图标是 Svg(画不了点击),所以在它上面盖一个同样大小、看不见的 Button 接收点击;没有 Svg 的界面(终端)直接用符号当按钮。
-    // 悬停提示:平时不显示,鼠标移到图标上时才出现,向 side 指的那一侧展开。桌面端应用自己把它画成深色卡片,用浅色字;终端里是橙底深字。
+    // 悬停提示:平时不显示,鼠标移到图标上时才出现,向 side 指的那一侧展开(向左展开用负的 left,不用 right:实测 right 会让提示从图标往右跑出窗口)。桌面端应用自己把它画成深色卡片,用浅色字;终端里是橙底深字。
     const iconButton = (key: string, glyph: string, paths: string, isOn: boolean, tip: string, tipCells: number, side: "left" | "right", onPress: () => void) => (
       <Box key={`${key}-wrap`} width={BUTTON_CELLS} height={1} position="relative" justifyContent="center">
         {Svg !== undefined && <Svg key={`${key}-icon`} source={lineIconSvg(paths, isOn)} alt={tip} width={24} height={22} />}
@@ -566,7 +566,7 @@ export const register: Register = (on, options) => {
         <Box
           position="absolute"
           top={0}
-          {...(side === "right" ? { left: BUTTON_CELLS } : { right: BUTTON_CELLS })}
+          left={side === "right" ? BUTTON_CELLS : -tipCells}
           width={tipCells}
           height={1}
           justifyContent="center"
