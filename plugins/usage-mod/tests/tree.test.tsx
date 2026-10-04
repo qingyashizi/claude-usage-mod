@@ -15,6 +15,28 @@ const GOOD: Record<string, (Box: any, Text: any) => unknown> = {
       </Box>
     </Box>
   ),
+  '感应区里的悬停明细卡片(左半边向右展开、右半边向左展开)': (Box, Text) => (
+    <Box position="relative">
+      <Box position="absolute" top={0} left={0} width="100%" height="100%">
+        <Box key="usage-turn-0" width={0} minWidth={0} flexGrow={6} height="100%" backgroundColor="#ffffff01" hover={{ scope: 'usage-turn-0', backgroundColor: '#ffffff1a' }}>
+          <Box key="tip-0" position="absolute" top={1} left={0} width={34} paddingX={1} flexDirection="column" backgroundColor="#0f0f0e" display="none" hover={{ scope: 'usage-turn-0', display: 'flex' }}>
+            <Text color="#ececec">明细</Text>
+            <Box gap={2}>
+              <Box gap={1}>
+                <Text color="#a855f7">●</Text>
+                <Text color="#ececec">缓存命中 12.9M</Text>
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+        <Box key="usage-turn-1" width={0} minWidth={0} flexGrow={6} height="100%" backgroundColor="#ffffff01" hover={{ scope: 'usage-turn-1', backgroundColor: '#ffffff1a' }}>
+          <Box key="tip-1" position="absolute" top={1} right={0} width={34} paddingX={1} display="none" hover={{ scope: 'usage-turn-1', display: 'flex' }}>
+            <Text>明细</Text>
+          </Box>
+        </Box>
+      </Box>
+    </Box>
+  ),
   '固定一行里叠着、悬停才显示的明细': (Box, Text) => (
     <Box height={1} width="100%" justifyContent="center">
       <Box position="absolute" top={0} left={0} width="100%" justifyContent="center" display="none" hover={{ scope: 'usage-turn-0', display: 'flex' }}>

@@ -1,6 +1,13 @@
 // 所有显示出来的文字都在这里。想加一种语言:复制一份下面的词典,改成目标语言,
 // 在 DICTS 里登记,再把语言代码加进 .claude-plugin/plugin.json 的 userConfig.language.options。
 
+/** 把毫秒拆成时、分、秒,各语言的"用时"文字共用。 */
+const split = (ms: number) => {
+  const total = Math.max(0, Math.round(ms / 1000))
+
+  return { h: Math.floor(total / 3600), m: Math.floor((total % 3600) / 60), s: total % 60 }
+}
+
 export type Dict = {
   /** 三块的名字,以及窄窗口时的简短写法 */
   ctx: string
@@ -42,8 +49,10 @@ export type Dict = {
   sRate: string
   sub: string
   statsAxis: (n: number) => string
+  startLabel: string
+  endLabel: string
+  elapsed: (ms: number) => string
   chartDesktopOnly: string
-  hoverHint: string
   close: string
 }
 
@@ -81,8 +90,14 @@ const zh: Dict = {
   sRate: '缓存命中率',
   sub: '子代理',
   statsAxis: n => `最近 ${n} 轮`,
+  startLabel: '开始',
+  endLabel: '结束',
+  elapsed: ms => {
+    const { h, m, s } = split(ms)
+
+    return h > 0 ? `用时 ${h}小时${m}分` : m > 0 ? `用时 ${m}分${s}秒` : `用时 ${s}秒`
+  },
   chartDesktopOnly: '折线图只在桌面应用里显示。',
-  hoverHint: '鼠标移到图上,查看每一轮的明细',
   close: '关闭',
 }
 
@@ -120,8 +135,14 @@ const zhTW: Dict = {
   sRate: '快取命中率',
   sub: '子代理',
   statsAxis: n => `最近 ${n} 輪`,
+  startLabel: '開始',
+  endLabel: '結束',
+  elapsed: ms => {
+    const { h, m, s } = split(ms)
+
+    return h > 0 ? `耗時 ${h}小時${m}分` : m > 0 ? `耗時 ${m}分${s}秒` : `耗時 ${s}秒`
+  },
   chartDesktopOnly: '折線圖只在桌面應用程式裡顯示。',
-  hoverHint: '滑鼠移到圖上,查看每一輪的明細',
   close: '關閉',
 }
 
@@ -162,8 +183,14 @@ const en: Dict = {
   sRate: 'Cache hit rate',
   sub: 'sub-agent',
   statsAxis: n => `last ${n} turn${n === 1 ? '' : 's'}`,
+  startLabel: 'Start',
+  endLabel: 'End',
+  elapsed: ms => {
+    const { h, m, s } = split(ms)
+
+    return h > 0 ? `took ${h}h ${m}m` : m > 0 ? `took ${m}m ${s}s` : `took ${s}s`
+  },
   chartDesktopOnly: 'The chart is only drawn in the Desktop app.',
-  hoverHint: 'Hover the chart to see each turn',
   close: 'Close',
 }
 
@@ -201,8 +228,14 @@ const ja: Dict = {
   sRate: 'キャッシュヒット率',
   sub: 'サブエージェント',
   statsAxis: n => `直近 ${n} ターン`,
+  startLabel: '開始',
+  endLabel: '終了',
+  elapsed: ms => {
+    const { h, m, s } = split(ms)
+
+    return h > 0 ? `所要 ${h}時間${m}分` : m > 0 ? `所要 ${m}分${s}秒` : `所要 ${s}秒`
+  },
   chartDesktopOnly: 'グラフはデスクトップアプリでのみ表示されます。',
-  hoverHint: 'グラフにカーソルを合わせると各ターンの詳細が見られます',
   close: '閉じる',
 }
 
