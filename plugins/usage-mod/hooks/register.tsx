@@ -83,8 +83,8 @@ const MUTED = '#a3a3a3'
  * 高度按横条能给的行数再往下缩。
  */
 const CHART_PX_PER_CELL = 7.6
-/** 第一行放五项合计时,窗口窄于这个格数就把标题去掉,不然挤不下。 */
-const TITLE_MIN_COLUMNS = 112
+/** 一段文字占几格:中日文字符占两格,其余一格。第一行放得下放不下,按各语言实际的文字量算,不能按中文估。 */
+const cellsOf = (text: string) => [...text].reduce((n, ch) => n + ((ch.codePointAt(0) ?? 0) > 0x2e7f ? 2 : 1), 0)
 const CHART_MIN_W = 480
 const CHART_MAX_W = 1400
 const CHART_MAX_H = 260
@@ -483,27 +483,39 @@ export const register: Register = (on, options) => {
     const chartW = Math.round(Math.min(CHART_MAX_W, Math.max(CHART_MIN_W, e.props.bodyColumns * CHART_PX_PER_CELL)))
     const chartH = Math.max(140, Math.min(CHART_MAX_H, (e.props.maxRows - 5) * 20))
 
+    // 第一行:合计在整行里居中,标题贴左、共几轮贴右(都不占位置)。放不下的东西按顺序让位:
+    // 先去掉标题,再把"共几轮"挪到第二行,还不够就去掉合计里的命中率、新增输入。英文、日文的文字比中文长得多,所以按实际文字量算。
+    const cols = e.props.bodyColumns
+    const GAP = 3
+    let items: Array<[string, string, string]> = [
+      ['in', L.sIn, countText(total.input)],
+      ['out', L.sOut, countText(total.output)],
+      ['create', L.sCreate, countText(total.cacheCreate)],
+      ['hit', L.sHit, countText(total.cacheRead)],
+      ['rate', L.sRate, hitRate(total.input, total.cacheRead, total.cacheCreate)],
+    ]
+    const rowCells = (list: typeof items) => list.reduce((n, [, label, value]) => n + cellsOf(label) + 1 + cellsOf(value), 0) + GAP * (list.length - 1)
+    for (const drop of ['rate', 'in']) if (rowCells(items) + 4 > cols) items = items.filter(([key]) => key !== drop)
+    const freeSide = (cols - rowCells(items)) / 2
+    const turnsText = L.statsTurns(total.turns)
+    const showTitle = total.turns === 0 || freeSide >= cellsOf(L.statsTitle) + 2
+    const showTurnsTop = freeSide >= cellsOf(turnsText) + 2
+
     const panel = (
       <Box key="stats-panel" flexDirection="column" width="100%" alignItems="center">
-        {/* 第一行:五项合计在整行里居中,标题贴在最左边、共几轮贴在最右边,这两个都不占位置,标题放不下时(窗口窄)先让位;第二行:四条曲线的开关,居中。没有关闭按钮,收起靠右下角的图标。 */}
+        {/* 第一行:五项合计居中,标题贴左、共几轮贴右;第二行:四条曲线的开关,居中。没有关闭按钮,收起靠右下角的图标。放不下时的让位顺序见上面。 */}
         <Box width="100%" justifyContent="center">
-          {(total.turns === 0 || e.props.bodyColumns >= TITLE_MIN_COLUMNS) && (
+          {showTitle && (
             <Box position="absolute" top={0} left={0}>
               <Text bold>{L.statsTitle}</Text>
             </Box>
           )}
           {total.turns > 0 && (
-            <Box gap={3}>
-              {stat('in', L.sIn, countText(total.input))}
-              {stat('out', L.sOut, countText(total.output))}
-              {stat('create', L.sCreate, countText(total.cacheCreate))}
-              {stat('hit', L.sHit, countText(total.cacheRead))}
-              {stat('rate', L.sRate, hitRate(total.input, total.cacheRead, total.cacheCreate))}
-            </Box>
+            <Box gap={GAP}>{items.map(([key, label, value]) => stat(key, label, value))}</Box>
           )}
-          {total.turns > 0 && (
+          {total.turns > 0 && showTurnsTop && (
             <Box position="absolute" top={0} right={0}>
-              <Text bold>{L.statsTurns(total.turns)}</Text>
+              <Text bold>{turnsText}</Text>
             </Box>
           )}
         </Box>
@@ -513,6 +525,11 @@ export const register: Register = (on, options) => {
           <Box flexDirection="column" width="100%" alignItems="center">
             {Svg !== undefined && (
               <Box width="100%" justifyContent="center" gap={2}>
+                {!showTurnsTop && (
+                  <Box position="absolute" top={0} right={0}>
+                    <Text bold>{turnsText}</Text>
+                  </Box>
+                )}
                 {SERIES.map(one => (
                   <Box key={one.key} gap={1}>
                     <Text color={one.color} dimColor={hidden.includes(one.key)}>
