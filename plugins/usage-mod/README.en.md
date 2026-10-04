@@ -106,6 +106,7 @@ Colors and the icon are constants at the top of `hooks/register.tsx`; all displa
 ## Known limitations
 
 - **The mods API is in early access** and changes between Claude Code versions. This mod was developed and tested on 2.1.286; other versions may fail to load it or draw it differently.
+- **Switching to a session that has not been opened since the app started, the row takes a few seconds to appear.** Measured in the Desktop app on Claude Code 2.1.289 (about ten runs): 2.5 to 5.5 seconds, around 4 on average; going back to a session that is already open is instant. Almost all of that time is spent inside the engine, which a mod cannot affect: about 1 second from the mod loading until its start hook runs, then about 1.7 seconds from the hook finishing until the row is first drawn. The mod's own setup is a fraction of a second. Making that setup non-blocking changed nothing measurable (4.3 s vs 4.0 s on average, within the run-to-run spread).
 - **The 5-hour and weekly figures only have real values after this process has received one reply.** A new session first shows the figures saved last time (in `cache/limits.json` inside the mod folder); any whose reset time has passed are dropped and shown as "—". This follows from how the engine supplies the data.
 - **The padding above and below the row belongs to the app**, and a mod cannot change it.
 - In the Desktop app the hover tooltip is drawn by the app as a dark card, so its text is light; in the terminal it is dark text on orange.
