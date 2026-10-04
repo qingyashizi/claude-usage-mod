@@ -206,10 +206,12 @@ export const register: Register = (on, options) => {
     const compact = async () => {
       $.ui.toast(L.compacting)
       try {
-        const result = await $.session.compact()
-        $.ui.toast('skip' in result && result.skip !== undefined ? L.notCompacted(result.skip) : L.compacted)
-      } catch {
-        $.ui.toast(L.busy)
+        // 不用 $.session.compact():桌面应用的会话是 SDK 无头会话,引擎不让插件直接调它。
+        // 改成像用户输入 /compact 那样运行这条命令;引擎文档说回复进行中会排队到这一轮结束。
+        await $.command.run({ command: 'compact' })
+        $.ui.toast(L.compacted)
+      } catch (err) {
+        $.ui.toast(L.notCompacted(err instanceof Error ? err.message : String(err)))
       }
     }
 

@@ -112,7 +112,9 @@ Colors and the icon are constants at the top of `hooks/register.tsx`; all displa
 - In the Desktop app the hover tooltip is drawn by the app as a dark card, so its text is light; in the terminal it is dark text on orange.
 - When the window is narrower than 78 columns, the row falls back to one short line, and the compact button is not shown.
 - Compacting replaces the earlier conversation with a summary, so detail is lost. **A click runs it immediately, with no confirmation step.**
-- The engine refuses to compact while Claude is replying; a toast says so.
+- **Compacting waits for the model to summarize the conversation, which takes a while when the context is large.** Measured: about 63 seconds at roughly 410k tokens. A click first shows "Compacting context…", then "Context compacted" when done; there is no progress display in between, and clicking again does not help.
+- Sessions in the Desktop app are SDK (headless) sessions, where the engine does not let a mod call the compaction API (`$.session.compact`) directly, so the button runs the `/compact` command for you instead (`$.command.run`). This was only verified in the Desktop app; it has not been tried in the terminal.
+- Clicking while Claude is replying: per the engine docs the command is queued and runs once the turn ends. This has not been verified here.
 - The author has only tested loading with `--plugin-dir` and `CLAUDE_CODE_PLUGIN_DIRS`. Installing from a marketplace is written from the official documentation and has not been tried first-hand.
 
 ## Uninstall

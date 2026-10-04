@@ -26,7 +26,6 @@ export type Dict = {
   compacting: string
   compacted: string
   notCompacted: (reason: string) => string
-  busy: string
   tip: string
   /** 悬停提示占的格数(中日文每字占两格) */
   tipCells: number
@@ -49,10 +48,9 @@ const zh: Dict = {
   tomorrow: '明天',
   weekday: i => `周${'日一二三四五六'[i]}`,
   date: (m, d) => `${m}月${d}日`,
-  compacting: '正在压缩上下文…',
+  compacting: '正在压缩上下文…(内容多时要一两分钟)',
   compacted: '已压缩上下文',
   notCompacted: reason => `没有压缩:${reason}`,
-  busy: 'AI 正在回复,等这一轮结束再压缩',
   tip: '点击压缩上下文',
   tipCells: 18,
 }
@@ -74,10 +72,9 @@ const zhTW: Dict = {
   tomorrow: '明天',
   weekday: i => `週${'日一二三四五六'[i]}`,
   date: (m, d) => `${m}月${d}日`,
-  compacting: '正在壓縮上下文…',
+  compacting: '正在壓縮上下文…(內容多時要一兩分鐘)',
   compacted: '已壓縮上下文',
   notCompacted: reason => `沒有壓縮:${reason}`,
-  busy: 'AI 正在回覆,等這一輪結束再壓縮',
   tip: '點擊壓縮上下文',
   tipCells: 18,
 }
@@ -102,10 +99,9 @@ const en: Dict = {
   tomorrow: 'tomorrow',
   weekday: i => WEEKDAYS_EN[i] ?? '',
   date: (m, d) => `${MONTHS[m - 1] ?? ''} ${d}`,
-  compacting: 'Compacting context…',
+  compacting: 'Compacting context… (can take a minute or two)',
   compacted: 'Context compacted',
   notCompacted: reason => `Not compacted: ${reason}`,
-  busy: 'Claude is replying. Try again when this turn ends.',
   tip: 'Click to compact context',
   tipCells: 26,
 }
@@ -127,10 +123,9 @@ const ja: Dict = {
   tomorrow: '明日',
   weekday: i => `${'日月火水木金土'[i]}曜`,
   date: (m, d) => `${m}月${d}日`,
-  compacting: 'コンテキストを圧縮中…',
+  compacting: 'コンテキストを圧縮中…(長いと1〜2分かかります)',
   compacted: 'コンテキストを圧縮しました',
   notCompacted: reason => `圧縮しませんでした:${reason}`,
-  busy: '応答中です。このターンが終わってから圧縮してください',
   tip: 'クリックでコンテキストを圧縮',
   tipCells: 28,
 }
