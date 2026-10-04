@@ -83,7 +83,7 @@ A mod is code that runs inside Claude Code with your permissions, and it is not 
 claude plugin validate ./usage-mod
 ```
 
-The `hooks:` and `calls:` lines in the output are the answer. This mod uses: reading usage (`$.session.usage`), compacting the context (`$.session.compact`), reading and writing `cache/limits.json` inside its own folder (`$.fs.read` / `$.fs.write`), toasts (`$.ui.toast`) and timers (`$.clock`). It makes no network requests and reads no other files.
+The `hooks:` and `calls:` lines in the output are the answer. This mod uses: reading usage (`$.session.usage`), running the `/compact` command to compact the context (`$.command.run`), reading and writing `cache/limits.json` inside its own folder (`$.fs.read` / `$.fs.write`), toasts (`$.ui.toast`) and timers (`$.clock`). It makes no network requests and reads no other files.
 
 ### Where it runs
 

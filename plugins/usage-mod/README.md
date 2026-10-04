@@ -83,7 +83,7 @@ Mod 是在 Claude Code 里面以你的权限运行的代码,没有沙箱。安�
 claude plugin validate ./usage-mod
 ```
 
-输出里的 `hooks:` 和 `calls:` 两行就是答案。本 Mod 会用到:读取用量(`$.session.usage`)、压缩上下文(`$.session.compact`)、读写自己文件夹下的 `cache/limits.json`(`$.fs.read` / `$.fs.write`)、弹提示(`$.ui.toast`)、定时器(`$.clock`)。不联网,不读别的文件。
+输出里的 `hooks:` 和 `calls:` 两行就是答案。本 Mod 会用到:读取用量(`$.session.usage`)、运行 `/compact` 命令来压缩上下文(`$.command.run`)、读写自己文件夹下的 `cache/limits.json`(`$.fs.read` / `$.fs.write`)、弹提示(`$.ui.toast`)、定时器(`$.clock`)。不联网,不读别的文件。
 
 ### 运行位置
 
